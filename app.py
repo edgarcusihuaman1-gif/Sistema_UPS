@@ -13,10 +13,10 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Configuración de página
+# Configuración de página con temática de Sistemas TI
 st.set_page_config(
-    page_title="Sistema de Gestión de UPS",
-    page_icon="🔋",
+    page_title="Sistema de Gestión TI - UPS",
+    page_icon="💻",
     layout="wide"
 )
 
@@ -221,9 +221,9 @@ PATRONES = {
 }
 
 USUARIOS = {
-    "admin": {"password": "123", "rol": "admin", "nombre": "Administrador"},
-    "reportes": {"password": "123", "rol": "visor_exportador", "nombre": "Analista"},
-    "invitado": {"password": "123", "rol": "solo_vista", "nombre": "Invitado"}
+    "admin": {"password": "123", "rol": "admin", "nombre": "Administrador TI"},
+    "reportes": {"password": "123", "rol": "visor_exportador", "nombre": "Analista TI"},
+    "invitado": {"password": "123", "rol": "solo_vista", "nombre": "Soporte Técnico"}
 }
 
 if "autenticado" not in st.session_state:
@@ -232,13 +232,13 @@ if "autenticado" not in st.session_state:
     st.session_state.rol_actual = None
 
 def login():
-    st.title("🔐 Acceso al Sistema UPS")
+    st.title("🔐 Acceso - Infraestructura TI & UPS")
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         with st.form("login_form"):
-            user = st.text_input("Usuario:").strip().lower()
+            user = st.text_input("Usuario TI:").strip().lower()
             pwd = st.text_input("Contraseña:", type="password")
-            if st.form_submit_button("Ingresar", use_container_width=True):
+            if st.form_submit_button("Ingresar al Sistema", use_container_width=True):
                 if user in USUARIOS and USUARIOS[user]["password"] == pwd:
                     st.session_state.autenticado = True
                     st.session_state.usuario_actual = USUARIOS[user]["nombre"]
@@ -359,7 +359,7 @@ def render_kpi(icono, titulo, valor):
     st.markdown(html, unsafe_allow_html=True)
 
 # Menú lateral
-st.sidebar.title("⚡ Navegación UPS")
+st.sidebar.title("💻 Gestión de Infraestructura TI")
 st.sidebar.caption(f"👤 **{st.session_state.usuario_actual}**")
 
 # Selector de Tema
@@ -391,9 +391,9 @@ else:
 
 st.markdown(f"""
     <div class="main-header">
-        <h1>🔋 Sistema de Gestión de UPS</h1>
-        <p>Plataforma centralizada para el control de inventario, mantenimiento, baterías y alquileres.</p>
-        <div class="status-badge">🟢 Sistema en línea • Actualizado {fecha_actual_str}</div>
+        <h1>💻 Sistemas TI - Control de UPS</h1>
+        <p>Plataforma centralizada de infraestructura para el control de inventario, mantenimiento, baterías y alquileres.</p>
+        <div class="status-badge">🟢 Servidor TI Activo • Actualizado {fecha_actual_str}</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -402,8 +402,8 @@ st.markdown(f"""
 # -------------------------------------------------------------
 if opcion == "📊 Panel de control":
 
-    st.subheader("📊 Panel de control")
-    st.caption("Resumen ejecutivo del sistema de Gestión de UPS.")
+    st.subheader("📊 Panel de control TI")
+    st.caption("Resumen ejecutivo de la infraestructura de UPS.")
 
     df_inv = st.session_state.df_Inventario
     df_mant = st.session_state.df_Mantenimiento
@@ -525,7 +525,7 @@ if opcion == "📊 Panel de control":
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("### 📁 Estado de información")
+        st.markdown("### 📁 Estado de módulos")
         st.markdown("""
             <div class="status-item"><span class="check-icon">✓</span> Inventario</div>
             <div class="status-item"><span class="check-icon">✓</span> Mantenimiento</div>
@@ -685,7 +685,7 @@ elif opcion == "🤝 Alquileres":
 # NUEVO REGISTRO
 # -------------------------------------------------------------
 elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
-    st.title("📝 Registrar Nuevo Evento")
+    st.title("📝 Registrar Nuevo Evento TI")
     
     tipo = st.selectbox("Tipo de Evento:", ["Mantenimiento", "Cambio de Batería"])
     
@@ -764,7 +764,7 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
             mant_queda = st.text_input("MANT QUEDA:", value=mant_queda_auto)
             mant_carga = st.text_input("MANT CARGA:", value=mant_carga_auto)
 
-        if st.form_submit_button("💾 Guardar Registro", use_container_width=True):
+        if st.form_submit_button("💾 Guardar Registro TI", use_container_width=True):
             if not tienda_final:
                 st.warning("⚠️ Selecciona o escribe una tienda antes de guardar.")
             else:
@@ -818,7 +818,7 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
     col_tit, col_anio, col_btn_xl, col_btn_pdf = st.columns([2.2, 1.2, 1, 1])
     
     with col_tit:
-        st.markdown("## 📥 Exportar informes")
+        st.markdown("## 📥 Exportar informes TI")
     
     with col_anio:
         anio_filtro = st.selectbox("📅 Filtrar por Año:", ["Todos", "2026", "2025"])
@@ -862,7 +862,7 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
         st.download_button(
             "📊 Excel", 
             exportar_excel(df_exp), 
-            f"Reporte_{sel}_{anio_filtro}.xlsx", 
+            f"Reporte_TI_{sel}_{anio_filtro}.xlsx", 
             use_container_width=True
         )
     
@@ -870,8 +870,8 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
         st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
         st.download_button(
             "📄 PDF", 
-            generar_pdf(f"Reporte {sel} ({anio_filtro})", df_exp), 
-            f"Reporte_{sel}_{anio_filtro}.pdf", 
+            generar_pdf(f"Reporte TI - {sel} ({anio_filtro})", df_exp), 
+            f"Reporte_TI_{sel}_{anio_filtro}.pdf", 
             mime="application/pdf", 
             use_container_width=True
         )
