@@ -173,23 +173,6 @@ def aplicar_estilos_corporativos():
             color: {TEXT_SECONDARY};
         }}
 
-        .status-item {{
-            background-color: {BG_CARD};
-            border: 1px solid {BORDER_COLOR};
-            border-radius: 10px;
-            padding: 10px 14px;
-            margin-bottom: 8px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            color: {TEXT_PRIMARY};
-        }}
-        .check-icon {{
-            color: {STATUS_TEXT};
-            font-weight: bold;
-            margin-right: 8px;
-        }}
-        
-        /* ANCHO Y TIPOGRAFÍA PROFESIONAL DE LA BARRA LATERAL */
         section[data-testid="stSidebar"] {{
             background-color: {BG_CARD} !important;
             border-right: 1px solid {BORDER_COLOR};
@@ -203,10 +186,10 @@ def aplicar_estilos_corporativos():
         section[data-testid="stSidebar"] * {{
             color: {TEXT_PRIMARY} !important;
         }}
-        /* Agrandar títulos y textos del menú manteniendo elegancia */
+        /* TÍTULO LATERAL AGRANDADO Y MODIFICADO */
         section[data-testid="stSidebar"] h1 {{
-            font-size: 1.35rem !important;
-            font-weight: 700 !important;
+            font-size: 1.55rem !important;
+            font-weight: 800 !important;
             letter-spacing: -0.2px;
             line-height: 1.25;
             margin-bottom: 0.2rem !important;
@@ -222,7 +205,6 @@ def aplicar_estilos_corporativos():
             font-size: 0.95rem !important;
             color: {TEXT_SECONDARY} !important;
         }}
-        /* Mayor separación y presencia táctil en las opciones del menú */
         section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {{
             padding: 6px 0px !important;
         }}
@@ -385,8 +367,8 @@ def render_kpi(icono, titulo, valor):
     """
     st.markdown(html, unsafe_allow_html=True)
 
-# Menú lateral profesional
-st.sidebar.title("💻 Gestión de Infraestructura TI")
+# Menú lateral con el título actualizado a GESTION DE UPS - TI
+st.sidebar.title("💻 GESTION DE UPS - TI")
 st.sidebar.caption(f"👤 **{st.session_state.usuario_actual}**")
 
 menu = ["📊 Panel de control", "📦 Inventario UPS", "🛠️ Mantenimientos", "🔋 Cambio de baterías", "🤝 Alquileres"]
@@ -787,28 +769,40 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
 # EXPORTAR DATOS
 # -------------------------------------------------------------
 elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin", "visor_exportador"]:
-    col_tit, col_anio, col_btn_xl, col_btn_pdf = st.columns([2.2, 1.2, 1, 1])
+    st.markdown("## 📥 Exportar Reportes TI")
+    st.caption("Selecciona el módulo y el formato de exportación (Excel o PDF).")
+
+    modulo_export = st.selectbox(
+        "Seleccionar módulo a exportar:", 
+        ["Inventario", "Mantenimiento", "Baterias", "Alquiler"]
+    )
     
-    with col_tit:
-        st.markdown("## 📥 Exportar informes TI")
-    with col_anio:
-        anio_filtro = st.selectbox("📅 Filtrar por Año:", ["Todos", "2026", "2025"])
+    df_a_exportar = st.session_state.get(f"df_{modulo_export}", pd.DataFrame())
 
-    col_mod, _ = st.columns([2, 2])
-    with col_mod:
-        sel = st.selectbox("Seleccionar Módulo:", list(PATRONES.keys()))
+    if df_a_exportar.empty:
+        st.warning("⚠️ No hay datos disponibles en este módulo para exportar.")
+    else:
+        st.write(f"Vista previa de registros a exportar ({len(df_a_exportar)} filas):")
+        st.dataframe(df_a_exportar.head(5), use_container_width=True)
 
-    df_exp = st.session_state[f"df_{sel}"].copy()
+        col_ex1, col_ex2 = st.columns(2)
 
-    with col_btn_xl:
-        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-        st.download_button(
-            "📊 Excel", exportar_excel(df_exp), f"Reporte_TI_{sel}_{anio_filtro}.xlsx", use_container_width=True
-        )
-    with col_btn_pdf:
-        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-        st.download_button(
-            "📄 PDF", generar_pdf(f"Reporte TI - {sel} ({anio_filtro})", df_exp), f"Reporte_TI_{sel}_{anio_filtro}.pdf", mime="application/pdf", use_container_width=True
-        )
+        with col_ex1:
+            excel_bytes = exportar_excel(df_a_exportar)
+            st.download_button(
+                label=f"📥 Descargar {modulo_export} (Excel)",
+                data=excel_bytes,
+                file_name=f"Reporte_{modulo_export}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
-    st.dataframe(df_exp, use_container_width=True, hide_index=True)
+        with col_ex2:
+            pdf_bytes = generar_pdf(f"Reporte de {modulo_export} - TI UPS", df_a_exportar)
+            st.download_button(
+                label=f"📄 Descargar {modulo_export} (PDF)",
+                data=pdf_bytes,
+                file_name=f"Reporte_{modulo_export}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
