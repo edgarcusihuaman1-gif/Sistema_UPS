@@ -23,7 +23,7 @@ st.set_page_config(
 if "tema_actual" not in st.session_state:
     st.session_state.tema_actual = "Claro"
 
-# Estilos CSS dinámicos (Modo Claro vs Modo Oscuro)
+# Estilos CSS dinámicos (Modo Claro vs Modo Oscuro) con soporte global y corrección de inputs/botones
 def aplicar_estilos(tema):
     if tema == "Oscuro":
         bg_main = "#0F172A"
@@ -35,6 +35,8 @@ def aplicar_estilos(tema):
         status_text = "#6EE7B7"
         status_border = "#065F46"
         summary_val_color = "#38BDF8"
+        input_bg = "#334155"
+        btn_bg = "#334155"
     else:
         bg_main = "#F8FAFC"
         bg_card = "#FFFFFF"
@@ -45,6 +47,8 @@ def aplicar_estilos(tema):
         status_text = "#166534"
         status_border = "#BBF7D0"
         summary_val_color = "#0284C7"
+        input_bg = "#FFFFFF"
+        btn_bg = "#FFFFFF"
 
     css = f"""
         <style>
@@ -52,9 +56,50 @@ def aplicar_estilos(tema):
         footer {{visibility: hidden;}}
         
         .stApp {{
-            background-color: {bg_main};
+            background-color: {bg_main} !important;
+            color: {text_primary} !important;
         }}
         
+        /* Forzar visibilidad global de textos en modo oscuro */
+        h1, h2, h3, h4, h5, h6, span, p, label, 
+        .stMarkdown, div[data-testid="stMarkdownContainer"], 
+        div[data-testid="stText"], .stMetricLabel, .stMetricValue, .stCaption {{
+            color: {text_primary} !important;
+        }}
+
+        /* Corrección visibilidad de Selectbox y Inputs en Modo Oscuro */
+        div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"] {{
+            background-color: {input_bg} !important;
+            color: {text_primary} !important;
+        }}
+        div[data-baseweb="select"] span, div[data-baseweb="select"] option, div[data-baseweb="select"] div {{
+            color: {text_primary} !important;
+        }}
+        div[data-baseweb="popover"] div, div[data-baseweb="menu"] div {{
+            background-color: {bg_card} !important;
+            color: {text_primary} !important;
+        }}
+
+        /* Botones generales, de descarga y de envío de formularios */
+        .stButton > button, div.stButton > button, button[kind="secondary"], 
+        div[data-testid="stDownloadButton"] > button, .stDownloadButton > button,
+        div[data-testid="stFormSubmitButton"] > button {{
+            background-color: {btn_bg} !important;
+            color: {text_primary} !important;
+            border: 1px solid {border_color} !important;
+            opacity: 1 !important;
+        }}
+        .stButton > button *, .stDownloadButton > button *, div[data-testid="stFormSubmitButton"] > button * {{
+            color: {text_primary} !important;
+            opacity: 1 !important;
+        }}
+        .stButton > button:hover, .stButton > button:hover *, 
+        .stDownloadButton > button:hover, .stDownloadButton > button:hover *,
+        div[data-testid="stFormSubmitButton"] > button:hover, div[data-testid="stFormSubmitButton"] > button:hover * {{
+            border-color: {summary_val_color} !important;
+            color: {summary_val_color} !important;
+        }}
+
         .main-header {{
             background-color: {bg_card};
             padding: 20px 24px;
@@ -146,6 +191,15 @@ def aplicar_estilos(tema):
             color: #16A34A;
             font-weight: bold;
             margin-right: 8px;
+        }}
+        
+        /* Ajustes barra lateral */
+        section[data-testid="stSidebar"] {{
+            background-color: {bg_card} !important;
+            border-right: 1px solid {border_color};
+        }}
+        section[data-testid="stSidebar"] * {{
+            color: {text_primary} !important;
         }}
         </style>
     """
