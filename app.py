@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 import os
 import glob
+import time
 import plotly.express as px
 
 # Importaciones de ReportLab para generación de PDFs
@@ -382,8 +383,12 @@ opcion = st.sidebar.radio("Seleccionar módulo:", menu)
 if st.sidebar.button("🚪 Cerrar Sesión"):
     logout()
 
-# Cabecera superior común
-fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+# Cabecera superior común con hora automática (Detecta Local vs Streamlit Cloud)
+if "HOSTNAME" in os.environ or time.daylight == 0:
+    fecha_actual_str = (datetime.utcnow() - timedelta(hours=5)).strftime("%d/%m/%Y %H:%M")
+else:
+    fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+
 st.markdown(f"""
     <div class="main-header">
         <h1>🔋 Sistema de Gestión de UPS</h1>
