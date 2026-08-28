@@ -13,137 +13,132 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Configuración de página con temática de Sistemas TI
+# Configuración inicial de la página
 st.set_page_config(
     page_title="Sistema de Gestión TI - UPS",
     page_icon="💻",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Menú lateral - Selección de tema
-if "tema_actual" not in st.session_state:
-    st.session_state.tema_actual = "Claro"
+# Paleta corporativa fija de TI (Estilo Profesional / Presentación)
+BG_MAIN = "#0B132B"
+BG_CARD = "#1C2541"
+BORDER_COLOR = "#3A506B"
+TEXT_PRIMARY = "#FFFFFF"
+TEXT_SECONDARY = "#8D99AE"
+STATUS_BG = "#0B2545"
+STATUS_TEXT = "#4CC9F0"
+STATUS_BORDER = "#1D3557"
+SUMMARY_VAL_COLOR = "#4CC9F0"
+INPUT_BG = "#2B3A67"
+BTN_BG = "#1D3557"
 
-# Estilos CSS dinámicos (Modo Claro vs Modo Oscuro) con soporte global y corrección de inputs/botones
-def aplicar_estilos(tema):
-    if tema == "Oscuro":
-        bg_main = "#0F172A"
-        bg_card = "#1E293B"
-        border_color = "#334155"
-        text_primary = "#F8FAFC"
-        text_secondary = "#94A3B8"
-        status_bg = "#064E3B"
-        status_text = "#6EE7B7"
-        status_border = "#065F46"
-        summary_val_color = "#38BDF8"
-        input_bg = "#334155"
-        btn_bg = "#334155"
-    else:
-        bg_main = "#F8FAFC"
-        bg_card = "#FFFFFF"
-        border_color = "#E2E8F0"
-        text_primary = "#0F172A"
-        text_secondary = "#64748B"
-        status_bg = "#F0FDF4"
-        status_text = "#166534"
-        status_border = "#BBF7D0"
-        summary_val_color = "#0284C7"
-        input_bg = "#FFFFFF"
-        btn_bg = "#FFFFFF"
-
+def aplicar_estilos_corporativos():
     css = f"""
         <style>
         #MainMenu {{visibility: hidden;}}
         footer {{visibility: hidden;}}
         
-        .stApp {{
-            background-color: {bg_main} !important;
-            color: {text_primary} !important;
+        /* ELIMINAR COMPLETAMENTE EL RECTÁNGULO BLANCO SUPERIOR */
+        header[data-testid="stHeader"] {{
+            display: none !important;
+            visibility: hidden !important;
+            height: 0px !important;
+        }}
+        .block-container {{
+            padding-top: 1rem !important;
+            margin-top: -30px !important;
         }}
         
-        /* Forzar visibilidad global de textos en modo oscuro */
+        .stApp {{
+            background-color: {BG_MAIN} !important;
+            color: {TEXT_PRIMARY} !important;
+        }}
+        
+        /* Forzar visibilidad global de textos */
         h1, h2, h3, h4, h5, h6, span, p, label, 
         .stMarkdown, div[data-testid="stMarkdownContainer"], 
         div[data-testid="stText"], .stMetricLabel, .stMetricValue, .stCaption {{
-            color: {text_primary} !important;
+            color: {TEXT_PRIMARY} !important;
         }}
 
-        /* Corrección visibilidad de Selectbox y Inputs en Modo Oscuro */
+        /* Selectbox e Inputs */
         div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"] {{
-            background-color: {input_bg} !important;
-            color: {text_primary} !important;
+            background-color: {INPUT_BG} !important;
+            color: {TEXT_PRIMARY} !important;
         }}
         div[data-baseweb="select"] span, div[data-baseweb="select"] option, div[data-baseweb="select"] div {{
-            color: {text_primary} !important;
+            color: {TEXT_PRIMARY} !important;
         }}
         div[data-baseweb="popover"] div, div[data-baseweb="menu"] div {{
-            background-color: {bg_card} !important;
-            color: {text_primary} !important;
+            background-color: {BG_CARD} !important;
+            color: {TEXT_PRIMARY} !important;
         }}
 
-        /* Botones generales, de descarga y de envío de formularios */
+        /* Botones generales y de formularios */
         .stButton > button, div.stButton > button, button[kind="secondary"], 
         div[data-testid="stDownloadButton"] > button, .stDownloadButton > button,
         div[data-testid="stFormSubmitButton"] > button {{
-            background-color: {btn_bg} !important;
-            color: {text_primary} !important;
-            border: 1px solid {border_color} !important;
+            background-color: {BTN_BG} !important;
+            color: {TEXT_PRIMARY} !important;
+            border: 1px solid {BORDER_COLOR} !important;
             opacity: 1 !important;
         }}
         .stButton > button *, .stDownloadButton > button *, div[data-testid="stFormSubmitButton"] > button * {{
-            color: {text_primary} !important;
+            color: {TEXT_PRIMARY} !important;
             opacity: 1 !important;
         }}
         .stButton > button:hover, .stButton > button:hover *, 
         .stDownloadButton > button:hover, .stDownloadButton > button:hover *,
         div[data-testid="stFormSubmitButton"] > button:hover, div[data-testid="stFormSubmitButton"] > button:hover * {{
-            border-color: {summary_val_color} !important;
-            color: {summary_val_color} !important;
+            border-color: {SUMMARY_VAL_COLOR} !important;
+            color: {SUMMARY_VAL_COLOR} !important;
         }}
 
         .main-header {{
-            background-color: {bg_card};
+            background-color: {BG_CARD};
             padding: 20px 24px;
             border-radius: 12px;
-            border: 1px solid {border_color};
+            border: 1px solid {BORDER_COLOR};
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }}
         .main-header h1 {{
             font-size: 1.6rem !important;
             font-weight: 800;
-            color: {text_primary};
+            color: {TEXT_PRIMARY};
             margin: 0;
         }}
         .main-header p {{
-            color: {text_secondary};
+            color: {TEXT_SECONDARY};
             margin: 4px 0 8px 0;
             font-size: 0.9rem;
         }}
         .status-badge {{
             display: inline-flex;
             align-items: center;
-            background-color: {status_bg};
-            color: {status_text};
+            background-color: {STATUS_BG};
+            color: {STATUS_TEXT};
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.82rem;
             font-weight: 600;
-            border: 1px solid {status_border};
+            border: 1px solid {STATUS_BORDER};
         }}
 
         .kpi-card {{
-            background-color: {bg_card};
-            border: 1px solid {border_color};
+            background-color: {BG_CARD};
+            border: 1px solid {BORDER_COLOR};
             border-radius: 12px;
             padding: 16px 20px;
             margin-bottom: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }}
         .kpi-header {{
             font-size: 0.75rem;
             font-weight: 700;
-            color: {text_secondary};
+            color: {TEXT_SECONDARY};
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 6px;
@@ -151,13 +146,13 @@ def aplicar_estilos(tema):
         .kpi-value {{
             font-size: 1.75rem;
             font-weight: 800;
-            color: {text_primary};
+            color: {TEXT_PRIMARY};
             line-height: 1.1;
         }}
 
         .summary-card {{
-            background-color: {bg_card};
-            border: 1px solid {border_color};
+            background-color: {BG_CARD};
+            border: 1px solid {BORDER_COLOR};
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 12px;
@@ -165,46 +160,78 @@ def aplicar_estilos(tema):
         .summary-title {{
             font-size: 0.85rem;
             font-weight: 700;
-            color: {text_primary};
+            color: {TEXT_PRIMARY};
         }}
         .summary-val {{
             font-size: 1.3rem;
             font-weight: 800;
-            color: {summary_val_color};
+            color: {SUMMARY_VAL_COLOR};
             margin: 4px 0;
         }}
         .summary-sub {{
             font-size: 0.78rem;
-            color: {text_secondary};
+            color: {TEXT_SECONDARY};
         }}
 
         .status-item {{
-            background-color: {bg_card};
-            border: 1px solid {border_color};
+            background-color: {BG_CARD};
+            border: 1px solid {BORDER_COLOR};
             border-radius: 10px;
             padding: 10px 14px;
             margin-bottom: 8px;
             font-size: 0.88rem;
             font-weight: 600;
-            color: {text_primary};
+            color: {TEXT_PRIMARY};
         }}
         .check-icon {{
-            color: #16A34A;
+            color: {STATUS_TEXT};
             font-weight: bold;
             margin-right: 8px;
         }}
         
-        /* Ajustes barra lateral */
+        /* ANCHO Y TIPOGRAFÍA PROFESIONAL DE LA BARRA LATERAL */
         section[data-testid="stSidebar"] {{
-            background-color: {bg_card} !important;
-            border-right: 1px solid {border_color};
+            background-color: {BG_CARD} !important;
+            border-right: 1px solid {BORDER_COLOR};
+            min-width: 350px !important;
+            max-width: 350px !important;
+            width: 350px !important;
+        }}
+        section[data-testid="stSidebar"] > div:first-child {{
+            width: 350px !important;
         }}
         section[data-testid="stSidebar"] * {{
-            color: {text_primary} !important;
+            color: {TEXT_PRIMARY} !important;
+        }}
+        /* Agrandar títulos y textos del menú manteniendo elegancia */
+        section[data-testid="stSidebar"] h1 {{
+            font-size: 1.35rem !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.2px;
+            line-height: 1.25;
+            margin-bottom: 0.2rem !important;
+        }}
+        section[data-testid="stSidebar"] p, 
+        section[data-testid="stSidebar"] span, 
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] .stRadio label p {{
+            font-size: 1.05rem !important;
+            font-weight: 500 !important;
+        }}
+        section[data-testid="stSidebar"] .stCaption p {{
+            font-size: 0.95rem !important;
+            color: {TEXT_SECONDARY} !important;
+        }}
+        /* Mayor separación y presencia táctil en las opciones del menú */
+        section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {{
+            padding: 6px 0px !important;
         }}
         </style>
     """
     st.markdown(css, unsafe_allow_html=True)
+
+# Aplicar estilos fijos
+aplicar_estilos_corporativos()
 
 # Buscar archivos Excel automáticamente
 def buscar_archivo_excel(patron_nombre):
@@ -307,7 +334,7 @@ def generar_pdf(titulo, df):
     estilos = getSampleStyleSheet()
     
     estilo_titulo = ParagraphStyle(
-        'T', parent=estilos['Heading1'], fontSize=12, textColor=colors.HexColor('#0F172A'), alignment=1
+        'T', parent=estilos['Heading1'], fontSize=12, textColor=colors.HexColor('#4CC9F0'), alignment=1
     )
     elementos.append(Paragraph(f"<b>{titulo}</b>", estilo_titulo))
     elementos.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}<br/><br/>", estilos['Normal']))
@@ -336,8 +363,8 @@ def generar_pdf(titulo, df):
         
         tabla = Table(tbl_data, colWidths=[ancho_col] * num_cols, repeatRows=1)
         tabla.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F172A')),
-            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CBD5E1')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1D3557')),
+            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#3A506B')),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
             ('TOPPADDING', (0, 0), (-1, -1), 2),
@@ -358,17 +385,9 @@ def render_kpi(icono, titulo, valor):
     """
     st.markdown(html, unsafe_allow_html=True)
 
-# Menú lateral
+# Menú lateral profesional
 st.sidebar.title("💻 Gestión de Infraestructura TI")
 st.sidebar.caption(f"👤 **{st.session_state.usuario_actual}**")
-
-# Selector de Tema
-tema_sel = st.sidebar.selectbox("🎨 Modo de Color", ["Claro", "Oscuro"], index=0 if st.session_state.tema_actual == "Claro" else 1)
-if tema_sel != st.session_state.tema_actual:
-    st.session_state.tema_actual = tema_sel
-    st.rerun()
-
-aplicar_estilos(st.session_state.tema_actual)
 
 menu = ["📊 Panel de control", "📦 Inventario UPS", "🛠️ Mantenimientos", "🔋 Cambio de baterías", "🤝 Alquileres"]
 
@@ -383,11 +402,8 @@ opcion = st.sidebar.radio("Seleccionar módulo:", menu)
 if st.sidebar.button("🚪 Cerrar Sesión"):
     logout()
 
-# Cabecera superior común con hora automática (Detecta Local vs Streamlit Cloud)
-if "HOSTNAME" in os.environ or time.daylight == 0:
-    fecha_actual_str = (datetime.utcnow() - timedelta(hours=5)).strftime("%d/%m/%Y %H:%M")
-else:
-    fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+# Cabecera superior común
+fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
 
 st.markdown(f"""
     <div class="main-header">
@@ -473,9 +489,8 @@ if opcion == "📊 Panel de control":
 
     col_graficos, col_resumen = st.columns([2.2, 1])
 
-    is_dark = st.session_state.tema_actual == "Oscuro"
     theme_bg = "rgba(0,0,0,0)"
-    font_color = "#F8FAFC" if is_dark else "#0F172A"
+    font_color = "#FFFFFF"
 
     with col_graficos:
         st.markdown("### 📅 Comparativo por año")
@@ -486,7 +501,7 @@ if opcion == "📊 Panel de control":
         })
         fig_bat = px.bar(
             data_bat, x="Cantidad", y="Año", orientation='h', text="Cantidad",
-            title="🔋 Cambios de baterías", color_discrete_sequence=['#38BDF8' if is_dark else '#0EA5E9']
+            title="🔋 Cambios de baterías", color_discrete_sequence=['#4CC9F0']
         )
         fig_bat.update_layout(height=220, margin=dict(l=20, r=20, t=40, b=20), plot_bgcolor=theme_bg, paper_bgcolor=theme_bg, font_color=font_color)
         st.plotly_chart(fig_bat, use_container_width=True)
@@ -497,7 +512,7 @@ if opcion == "📊 Panel de control":
         })
         fig_mant = px.bar(
             data_mant, x="Año", y="Cantidad", text="Cantidad",
-            title="🛠️ Mantenimientos", color_discrete_sequence=['#38BDF8' if is_dark else '#0EA5E9']
+            title="🛠️ Mantenimientos", color_discrete_sequence=['#4CC9F0']
         )
         fig_mant.update_layout(height=220, margin=dict(l=20, r=20, t=40, b=20), plot_bgcolor=theme_bg, paper_bgcolor=theme_bg, font_color=font_color)
         st.plotly_chart(fig_mant, use_container_width=True)
@@ -523,14 +538,6 @@ if opcion == "📊 Panel de control":
                 <div class="summary-val">S/ {val_ingresos_alq:,.2f}</div>
                 <div class="summary-sub">Monto acumulado real de alquileres.</div>
             </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("### 📁 Estado de módulos")
-        st.markdown("""
-            <div class="status-item"><span class="check-icon">✓</span> Inventario</div>
-            <div class="status-item"><span class="check-icon">✓</span> Mantenimiento</div>
-            <div class="status-item"><span class="check-icon">✓</span> Baterías</div>
-            <div class="status-item"><span class="check-icon">✓</span> Alquileres</div>
         """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------
@@ -585,8 +592,6 @@ elif opcion == "🛠️ Mantenimientos":
     with c_kpi:
         render_kpi("🛠️", "Mantenimientos", f"{cant_mantenimientos:,}")
         
-    st.caption(f"Registros mostrados: {cant_mantenimientos}")
-    
     if st.session_state.rol_actual == "admin":
         df_edit_mant = st.data_editor(df_mant_filtrado, num_rows="dynamic", use_container_width=True, key="ed_mant")
         if st.button("💾 Guardar Cambios en Mantenimiento"):
@@ -622,8 +627,6 @@ elif opcion == "🔋 Cambio de baterías":
     with c1: render_kpi("🔋", "Baterías 2025", f"{tot_2025:,}")
     with c2: render_kpi("🔋", "Baterías 2026", f"{tot_2026:,}")
     with c3: render_kpi("🔋", "Total", f"{tot_general:,}")
-    
-    st.caption(f"Registros mostrados: {len(df_bat_filtrado)}")
     
     if st.session_state.rol_actual == "admin":
         df_edit_bat = st.data_editor(df_bat_filtrado, num_rows="dynamic", use_container_width=True, key="ed_bat")
@@ -669,8 +672,6 @@ elif opcion == "🤝 Alquileres":
     with a2: render_kpi("📅", "DÍAS ALQUILADOS", f"{tot_dias}")
     with a3: render_kpi("💰", "TOTAL", f"S/ {tot_costo:,.2f}")
     
-    st.caption(f"Registros mostrados: {len(df_alq_filtrado)}")
-
     if st.session_state.rol_actual == "admin":
         df_edit_alq = st.data_editor(df_alq_filtrado, num_rows="dynamic", use_container_width=True, key="ed_alq")
         if st.button("💾 Guardar Cambios en Alquileres"):
@@ -693,7 +694,6 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
     df_mant = st.session_state.df_Mantenimiento
     
     set_tiendas = set()
-    
     for df in [df_inv, df_mant]:
         if not df.empty:
             col_t = [c for c in df.columns if str(c).strip().upper() == 'TIENDA']
@@ -704,13 +704,12 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
                         set_tiendas.add(v)
     
     lista_tiendas = sorted(list(set_tiendas))
-
     col_a, col_b = st.columns(2)
     
     with col_a:
         if lista_tiendas:
             tienda_sel = st.selectbox("Tienda / Ubicación:", options=[""] + lista_tiendas)
-            tienda_manual = st.text_input("O escribe una nueva tienda (si no está en la lista):")
+            tienda_manual = st.text_input("O escribe una nueva tienda:")
             tienda_final = tienda_manual.strip() if tienda_manual.strip() else tienda_sel
         else:
             tienda_final = st.text_input("Tienda / Ubicación:")
@@ -721,43 +720,29 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
     mant_queda_auto = ""
     mant_carga_auto = ""
 
-    if tienda_final:
-        if not df_mant.empty:
-            col_t_mant = [c for c in df_mant.columns if str(c).strip().upper() == 'TIENDA']
-            if col_t_mant:
-                match_mant = df_mant[df_mant[col_t_mant[0]].astype(str).str.strip().str.upper() == tienda_final.upper()]
-                if not match_mant.empty:
-                    ult_reg = match_mant.iloc[-1]
-                    
-                    for col in df_mant.columns:
-                        c_up = str(col).strip().upper()
-                        if 'MODELO' in c_up and pd.notna(ult_reg[col]):
-                            modelo_auto = str(ult_reg[col])
-                        elif 'MANT. ATENCION' in c_up or 'ATENCION' in c_up:
-                            if pd.notna(ult_reg[col]): mant_atencion_auto = str(ult_reg[col])
-                        elif 'MANT SE ENCONTRO' in c_up or 'ENCONTRO' in c_up:
-                            if pd.notna(ult_reg[col]): mant_se_encontro_auto = str(ult_reg[col])
-                        elif 'MANT QUEDA' in c_up or 'QUEDA' in c_up:
-                            if pd.notna(ult_reg[col]): mant_queda_auto = str(ult_reg[col])
-                        elif 'MANT CARGA' in c_up or 'CARGA' in c_up:
-                            if pd.notna(ult_reg[col]): mant_carga_auto = str(ult_reg[col])
-
-        if not modelo_auto and not df_inv.empty:
-            col_t_inv = [c for c in df_inv.columns if str(c).strip().upper() == 'TIENDA']
-            if col_t_inv:
-                match_inv = df_inv[df_inv[col_t_inv[0]].astype(str).str.strip().str.upper() == tienda_final.upper()]
-                if not match_inv.empty:
-                    col_m = [c for c in df_inv.columns if 'MODELO' in str(c).strip().upper()]
-                    if col_m and pd.notna(match_inv.iloc[0][col_m[0]]):
-                        modelo_auto = str(match_inv.iloc[0][col_m[0]])
+    if tienda_final and not df_mant.empty:
+        col_t_mant = [c for c in df_mant.columns if str(c).strip().upper() == 'TIENDA']
+        if col_t_mant:
+            match_mant = df_mant[df_mant[col_t_mant[0]].astype(str).str.strip().str.upper() == tienda_final.upper()]
+            if not match_mant.empty:
+                ult_reg = match_mant.iloc[-1]
+                for col in df_mant.columns:
+                    c_up = str(col).strip().upper()
+                    if 'MODELO' in c_up and pd.notna(ult_reg[col]): modelo_auto = str(ult_reg[col])
+                    elif 'MANT. ATENCION' in c_up or 'ATENCION' in c_up: 
+                        if pd.notna(ult_reg[col]): mant_atencion_auto = str(ult_reg[col])
+                    elif 'MANT SE ENCONTRO' in c_up or 'ENCONTRO' in c_up: 
+                        if pd.notna(ult_reg[col]): mant_se_encontro_auto = str(ult_reg[col])
+                    elif 'MANT QUEDA' in c_up or 'QUEDA' in c_up: 
+                        if pd.notna(ult_reg[col]): mant_queda_auto = str(ult_reg[col])
+                    elif 'MANT CARGA' in c_up or 'CARGA' in c_up: 
+                        if pd.notna(ult_reg[col]): mant_carga_auto = str(ult_reg[col])
 
     with st.form("f_nuevo", clear_on_submit=False):
         f1, f2 = st.columns(2)
-        
         with f1:
             fec = st.date_input("Fecha:", datetime.now())
-            mant_atencion = st.text_input("MANT. ATENCION (Técnico / Atención):", value=mant_atencion_auto)
-
+            mant_atencion = st.text_input("MANT. ATENCION:", value=mant_atencion_auto)
         with f2:
             modelo = st.text_input("Modelo / Serie UPS:", value=modelo_auto)
             mant_se_encontro = st.text_input("MANT SE ENCONTRO:", value=mant_se_encontro_auto)
@@ -769,39 +754,27 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
                 st.warning("⚠️ Selecciona o escribe una tienda antes de guardar.")
             else:
                 fec_str = fec.strftime("%Y-%m-%d")
-                
                 if tipo == "Mantenimiento":
                     nuevo_registro = {
-                        "TIENDA": tienda_final,
-                        "MODELO": modelo,
-                        "MANT. ATENCION": mant_atencion,
-                        "MANT FECHA": fec_str,
-                        "MANT SE ENCONTRO": mant_se_encontro,
-                        "MANT QUEDA": mant_queda,
-                        "MANT CARGA": mant_carga
+                        "TIENDA": tienda_final, "MODELO": modelo, "MANT. ATENCION": mant_atencion,
+                        "MANT FECHA": fec_str, "MANT SE ENCONTRO": mant_se_encontro,
+                        "MANT QUEDA": mant_queda, "MANT CARGA": mant_carga
                     }
-                    
                     df_target = st.session_state.df_Mantenimiento
                     col_t_target = [c for c in df_target.columns if str(c).strip().upper() == 'TIENDA']
-                    
                     if col_t_target and tienda_final.upper() in df_target[col_t_target[0]].astype(str).str.strip().str.upper().values:
                         idx = df_target[df_target[col_t_target[0]].astype(str).str.strip().str.upper() == tienda_final.upper()].index[0]
                         for k, v in nuevo_registro.items():
-                            if k in df_target.columns:
-                                df_target.at[idx, k] = v
+                            if k in df_target.columns: df_target.at[idx, k] = v
                         st.session_state.df_Mantenimiento = df_target
                     else:
                         st.session_state.df_Mantenimiento = pd.concat([df_target, pd.DataFrame([nuevo_registro])], ignore_index=True)
-                    
                     guardar_excel(st.session_state.df_Mantenimiento, "Mantenimiento")
                     st.success(f"✅ Mantenimiento guardado para '{tienda_final}'.")
                     st.rerun()
-
                 else:
                     nuevo_bat = {
-                        "TIENDA": tienda_final,
-                        "MODELO": modelo,
-                        "FECHA": fec_str,
+                        "TIENDA": tienda_final, "MODELO": modelo, "FECHA": fec_str,
                         "ATENCION": mant_atencion,
                         "OBSERVACION": f"Encontró: {mant_se_encontro} | Queda: {mant_queda} | Carga: {mant_carga}"
                     }
@@ -814,12 +787,10 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
 # EXPORTAR DATOS
 # -------------------------------------------------------------
 elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin", "visor_exportador"]:
-    
     col_tit, col_anio, col_btn_xl, col_btn_pdf = st.columns([2.2, 1.2, 1, 1])
     
     with col_tit:
         st.markdown("## 📥 Exportar informes TI")
-    
     with col_anio:
         anio_filtro = st.selectbox("📅 Filtrar por Año:", ["Todos", "2026", "2025"])
 
@@ -829,52 +800,15 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
 
     df_exp = st.session_state[f"df_{sel}"].copy()
 
-    if anio_filtro != "Todos" and not df_exp.empty:
-        if sel == "Baterias":
-            col_cant_26 = [c for c in df_exp.columns if 'CANT' in str(c).upper() and '26' in str(c)]
-            col_fec_26 = [c for c in df_exp.columns if 'FECHA' in str(c).upper() and '26' in str(c)]
-            col_cant_25 = [c for c in df_exp.columns if 'CANT' in str(c).upper() and '25' in str(c)]
-            col_fec_25 = [c for c in df_exp.columns if 'FECHA' in str(c).upper() and '25' in str(c)]
-
-            if anio_filtro == "2026":
-                cond = pd.Series(False, index=df_exp.index)
-                if col_cant_26: cond |= pd.to_numeric(df_exp[col_cant_26[0]], errors='coerce').fillna(0) > 0
-                if col_fec_26: cond |= df_exp[col_fec_26[0]].notna()
-                df_exp = df_exp[cond]
-            elif anio_filtro == "2025":
-                cond = pd.Series(False, index=df_exp.index)
-                if col_cant_25: cond |= pd.to_numeric(df_exp[col_cant_25[0]], errors='coerce').fillna(0) > 0
-                if col_fec_25: cond |= df_exp[col_fec_25[0]].notna()
-                df_exp = df_exp[cond]
-
-        elif sel == "Mantenimiento":
-            col_f = [c for c in df_exp.columns if "FECHA" in str(c).upper()]
-            if col_f:
-                df_exp = df_exp[pd.to_datetime(df_exp[col_f[0]], errors='coerce').dt.year == int(anio_filtro)]
-
-        elif sel == "Alquiler":
-            col_a = [c for c in df_exp.columns if "AÑO" in str(c).upper()]
-            if col_a:
-                df_exp = df_exp[pd.to_numeric(df_exp[col_a[0]], errors='coerce') == int(anio_filtro)]
-
     with col_btn_xl:
         st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
         st.download_button(
-            "📊 Excel", 
-            exportar_excel(df_exp), 
-            f"Reporte_TI_{sel}_{anio_filtro}.xlsx", 
-            use_container_width=True
+            "📊 Excel", exportar_excel(df_exp), f"Reporte_TI_{sel}_{anio_filtro}.xlsx", use_container_width=True
         )
-    
     with col_btn_pdf:
         st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
         st.download_button(
-            "📄 PDF", 
-            generar_pdf(f"Reporte TI - {sel} ({anio_filtro})", df_exp), 
-            f"Reporte_TI_{sel}_{anio_filtro}.pdf", 
-            mime="application/pdf", 
-            use_container_width=True
+            "📄 PDF", generar_pdf(f"Reporte TI - {sel} ({anio_filtro})", df_exp), f"Reporte_TI_{sel}_{anio_filtro}.pdf", mime="application/pdf", use_container_width=True
         )
 
-    st.caption(f"Registros a exportar: {len(df_exp)}")
     st.dataframe(df_exp, use_container_width=True, hide_index=True)
