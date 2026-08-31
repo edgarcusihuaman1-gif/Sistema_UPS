@@ -454,8 +454,8 @@ if opcion == "📊 Panel de control":
     val_bat_actual = 0
     val_bat_total = 0
     if not df_bat.empty:
-        col_bat_actual = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and str(anio_actual) in str(c)]
-        col_bat_ant = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and str(anio_actual - 1) in str(c)]
+        col_bat_actual = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '26' in str(c)]
+        col_bat_ant = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '25' in str(c)]
         
         if col_bat_ant:
             val_bat_anterior = int(pd.to_numeric(df_bat[col_bat_ant[0]], errors='coerce').sum())
@@ -627,8 +627,8 @@ elif opcion == "🔋 Cambio de baterías":
         mask = df_bat_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_bat, case=False, na=False)).any(axis=1)
         df_bat_filtrado = df_bat_filtrado[mask]
         
-    col_bat_ant = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and str(anio_actual - 1) in str(c)]
-    col_bat_act = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and str(anio_actual) in str(c)]
+    col_bat_ant = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '25' in str(c)]
+    col_bat_act = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '26' in str(c)]
 
     tot_anterior = int(pd.to_numeric(df_bat[col_bat_ant[0]], errors='coerce').sum()) if col_bat_ant else 0
     tot_actual = int(pd.to_numeric(df_bat[col_bat_act[0]], errors='coerce').sum()) if col_bat_act else 0
