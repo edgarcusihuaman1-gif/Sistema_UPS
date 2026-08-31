@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from datetime import datetime
 import io
@@ -39,7 +40,6 @@ def aplicar_estilos_corporativos():
         #MainMenu {{visibility: hidden;}}
         footer {{visibility: hidden;}}
         
-        /* ELIMINAR COMPLETAMENTE EL RECTÁNGULO BLANCO SUPERIOR */
         header[data-testid="stHeader"] {{
             display: none !important;
             visibility: hidden !important;
@@ -55,14 +55,12 @@ def aplicar_estilos_corporativos():
             color: {TEXT_PRIMARY} !important;
         }}
         
-        /* Forzar visibilidad global de textos */
         h1, h2, h3, h4, h5, h6, span, p, label, 
         .stMarkdown, div[data-testid="stMarkdownContainer"], 
         div[data-testid="stText"], .stMetricLabel, .stMetricValue, .stCaption {{
             color: {TEXT_PRIMARY} !important;
         }}
 
-        /* Selectbox e Inputs */
         div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"] {{
             background-color: {INPUT_BG} !important;
             color: {TEXT_PRIMARY} !important;
@@ -75,7 +73,6 @@ def aplicar_estilos_corporativos():
             color: {TEXT_PRIMARY} !important;
         }}
 
-        /* Botones generales y de formularios */
         .stButton > button, div.stButton > button, button[kind="secondary"], 
         div[data-testid="stDownloadButton"] > button, .stDownloadButton > button,
         div[data-testid="stFormSubmitButton"] > button {{
@@ -95,9 +92,6 @@ def aplicar_estilos_corporativos():
             color: {SUMMARY_VAL_COLOR} !important;
         }}
 
-        /* ------------------------------------------------------------- */
-        /* ENCABEZADOS DE TABLAS (Súper visibles, negrita y sin opacidad) */
-        /* ------------------------------------------------------------- */
         div[data-testid="stDataFrame"] th, 
         div[data-testid="stDataEditor"] th,
         .dataframe th {{
@@ -124,7 +118,6 @@ def aplicar_estilos_corporativos():
             font-weight: 600 !important;
             opacity: 1 !important;
         }}
-        /* ------------------------------------------------------------- */
 
         .main-header {{
             background-color: {BG_CARD};
@@ -144,17 +137,6 @@ def aplicar_estilos_corporativos():
             color: {TEXT_SECONDARY};
             margin: 4px 0 8px 0;
             font-size: 0.9rem;
-        }}
-        .status-badge {{
-            display: inline-flex;
-            align-items: center;
-            background-color: {STATUS_BG};
-            color: {STATUS_TEXT};
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            border: 1px solid {STATUS_BORDER};
         }}
 
         .kpi-card {{
@@ -241,10 +223,8 @@ def aplicar_estilos_corporativos():
     """
     st.markdown(css, unsafe_allow_html=True)
 
-# Aplicar estilos fijos
 aplicar_estilos_corporativos()
 
-# Buscar archivos Excel automáticamente
 def buscar_archivo_excel(patron_nombre):
     archivos = glob.glob(f"*{patron_nombre}*.xlsx")
     if archivos:
@@ -396,7 +376,6 @@ def render_kpi(icono, titulo, valor):
     """
     st.markdown(html, unsafe_allow_html=True)
 
-# Menú lateral
 st.sidebar.title("💻 GESTION DE UPS - TI")
 st.sidebar.caption(f"👤 **{st.session_state.usuario_actual}**")
 
@@ -413,15 +392,36 @@ opcion = st.sidebar.radio("Seleccionar módulo:", menu)
 if st.sidebar.button("🚪 Cerrar Sesión"):
     logout()
 
-fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+anio_actual = datetime.now().year
 
-st.markdown(f"""
+st.markdown("""
     <div class="main-header">
         <h1>💻 Sistemas TI - Control de UPS</h1>
         <p>Plataforma centralizada de infraestructura para el control de inventario, mantenimiento, baterías y alquileres.</p>
-        <div class="status-badge">🟢 Servidor TI Activo • Actualizado {fecha_actual_str}</div>
-    </div>
 """, unsafe_allow_html=True)
+
+# Inserta el reloj interactivo dinámico en tiempo real
+components.html("""
+    <div style="display: inline-flex; align-items:center; background-color: #0B2545; color: #4CC9F0; padding: 4px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; border: 1px solid #1D3557; font-family: sans-serif;">
+        🟢 Servidor TI Activo • Actualizado <span id="reloj" style="margin-left: 4px;"></span>
+    </div>
+    <script>
+        function actualizarReloj() {
+            const ahora = new Date();
+            const dia = String(ahora.getDate()).padStart(2, '0');
+            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+            const anio = ahora.getFullYear();
+            const horas = String(ahora.getHours()).padStart(2, '0');
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const segundos = String(ahora.getSeconds()).padStart(2, '0');
+            document.getElementById('reloj').innerText = `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
+        }
+        actualizarReloj();
+        setInterval(actualizarReloj, 1000);
+    </script>
+""", height=35)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # -------------------------------------------------------------
 # PANEL DE CONTROL (DASHBOARD)
@@ -439,29 +439,30 @@ if opcion == "📊 Panel de control":
     val_inv = len(df_inv)
 
     val_mant_total = 0
-    val_mant_2026 = 0
+    val_mant_actual = 0
     if not df_mant.empty:
         col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
         if col_mant_f:
             val_mant_total = int(df_mant[col_mant_f[0]].notna().sum())
-            val_mant_2026 = val_mant_total
+            anos_col = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year
+            val_mant_actual = int((anos_col == anio_actual).sum())
         else:
             val_mant_total = len(df_mant)
-            val_mant_2026 = len(df_mant)
+            val_mant_actual = len(df_mant)
 
-    val_bat_2025 = 0
-    val_bat_2026 = 0
+    val_bat_anterior = 0
+    val_bat_actual = 0
     val_bat_total = 0
     if not df_bat.empty:
-        col_bat_26 = [c for c in df_bat.columns if 'CANT' in str(c).upper() and '26' in str(c)]
-        col_bat_25 = [c for c in df_bat.columns if 'CANT' in str(c).upper() and '25' in str(c)]
+        col_bat_actual = [c for c in df_bat.columns if 'CANT' in str(c).upper() and str(anio_actual) in str(c)]
+        col_bat_ant = [c for c in df_bat.columns if 'CANT' in str(c).upper() and str(anio_actual - 1) in str(c)]
         
-        if col_bat_25:
-            val_bat_2025 = int(pd.to_numeric(df_bat[col_bat_25[0]], errors='coerce').sum())
-        if col_bat_26:
-            val_bat_2026 = int(pd.to_numeric(df_bat[col_bat_26[0]], errors='coerce').sum())
+        if col_bat_ant:
+            val_bat_anterior = int(pd.to_numeric(df_bat[col_bat_ant[0]], errors='coerce').sum())
+        if col_bat_actual:
+            val_bat_actual = int(pd.to_numeric(df_bat[col_bat_actual[0]], errors='coerce').sum())
             
-        val_bat_total = val_bat_2025 + val_bat_2026
+        val_bat_total = val_bat_anterior + val_bat_actual
 
     val_alq_total = 0
     val_dias_alq = 0
@@ -492,8 +493,8 @@ if opcion == "📊 Panel de control":
     k5, k6, k7, k8 = st.columns(4)
     with k5: render_kpi("📅", "DÍAS ALQUILADOS", f"{val_dias_alq:,}")
     with k6: render_kpi("💰", "INGRESOS POR ALQUILER", f"S/ {val_ingresos_alq:,.2f}")
-    with k7: render_kpi("🛠️", "MANTENIMIENTOS 2026", f"{val_mant_2026:,}")
-    with k8: render_kpi("🔋", "BATERÍAS 2026", f"{val_bat_2026:,}")
+    with k7: render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
+    with k8: render_kpi("🔋", f"BATERÍAS {anio_actual}", f"{val_bat_actual:,}")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -506,8 +507,8 @@ if opcion == "📊 Panel de control":
         st.markdown("### 📅 Comparativo por año")
         
         data_bat = pd.DataFrame({
-            "Año": ["2025", "2026"],
-            "Cantidad": [val_bat_2025, val_bat_2026]
+            "Año": [str(anio_actual - 1), str(anio_actual)],
+            "Cantidad": [val_bat_anterior, val_bat_actual]
         })
         fig_bat = px.bar(
             data_bat, x="Cantidad", y="Año", orientation='h', text="Cantidad",
@@ -517,8 +518,8 @@ if opcion == "📊 Panel de control":
         st.plotly_chart(fig_bat, use_container_width=True)
 
         data_mant = pd.DataFrame({
-            "Año": ["2025", "2026"],
-            "Cantidad": [0, val_mant_2026]
+            "Año": [str(anio_actual - 1), str(anio_actual)],
+            "Cantidad": [val_mant_total - val_mant_actual, val_mant_actual]
         })
         fig_mant = px.bar(
             data_mant, x="Año", y="Cantidad", text="Cantidad",
@@ -538,9 +539,9 @@ if opcion == "📊 Panel de control":
             </div>
             
             <div class="summary-card">
-                <div class="summary-title">🔋 Baterías 2026</div>
-                <div class="summary-val">{val_bat_2026:,}</div>
-                <div class="summary-sub">Baterías cambiadas durante 2026.</div>
+                <div class="summary-title">🔋 Baterías {anio_actual}</div>
+                <div class="summary-val">{val_bat_actual:,}</div>
+                <div class="summary-sub">Baterías cambiadas durante {anio_actual}.</div>
             </div>
 
             <div class="summary-card">
@@ -626,16 +627,16 @@ elif opcion == "🔋 Cambio de baterías":
         mask = df_bat_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_bat, case=False, na=False)).any(axis=1)
         df_bat_filtrado = df_bat_filtrado[mask]
         
-    col_bat_25 = [c for c in df_bat.columns if 'CANT' in str(c).upper() and '25' in str(c)]
-    col_bat_26 = [c for c in df_bat.columns if 'CANT' in str(c).upper() and '26' in str(c)]
+    col_bat_ant = [c for c in df_bat.columns if 'CANT' in str(c).upper() and str(anio_actual - 1) in str(c)]
+    col_bat_act = [c for c in df_bat.columns if 'CANT' in str(c).upper() and str(anio_actual) in str(c)]
 
-    tot_2025 = int(pd.to_numeric(df_bat[col_bat_25[0]], errors='coerce').sum()) if col_bat_25 else 0
-    tot_2026 = int(pd.to_numeric(df_bat[col_bat_26[0]], errors='coerce').sum()) if col_bat_26 else 0
-    tot_general = tot_2025 + tot_2026
+    tot_anterior = int(pd.to_numeric(df_bat[col_bat_ant[0]], errors='coerce').sum()) if col_bat_ant else 0
+    tot_actual = int(pd.to_numeric(df_bat[col_bat_act[0]], errors='coerce').sum()) if col_bat_act else 0
+    tot_general = tot_anterior + tot_actual
     
     c1, c2, c3 = st.columns(3)
-    with c1: render_kpi("🔋", "Baterías 2025", f"{tot_2025:,}")
-    with c2: render_kpi("🔋", "Baterías 2026", f"{tot_2026:,}")
+    with c1: render_kpi("🔋", f"Baterías {anio_actual - 1}", f"{tot_anterior:,}")
+    with c2: render_kpi("🔋", f"Baterías {anio_actual}", f"{tot_actual:,}")
     with c3: render_kpi("🔋", "Total", f"{tot_general:,}")
     
     if st.session_state.rol_actual == "admin":
@@ -798,7 +799,7 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
 # -------------------------------------------------------------
 elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin", "visor_exportador"]:
     st.markdown("## 📥 Exportar Reportes TI")
-    st.caption("Selecciona el módulo, aplica los filtros por año y descarga tu reporte (Excel o PDF).[cite: 6]")
+    st.caption("Selecciona el módulo, aplica los filtros por año y descarga tu reporte (Excel o PDF).")
 
     modulo_export = st.selectbox(
         "Seleccionar módulo a exportar:", 
@@ -810,16 +811,14 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
     if df_a_exportar.empty:
         st.warning("⚠️ No hay datos disponibles en este módulo para exportar.")
     else:
-        # Filtro por año 2025 y 2026
-        st.markdown("### 📅 Filtrar por Año")
-        anos_disponibles = [2025, 2026]
+        st.markdown(f"### 📅 Filtrar por Año")
+        anos_disponibles = [anio_actual - 1, anio_actual]
         anos_seleccionados = st.multiselect(
             "Selecciona los años a incluir en la exportación:",
             options=anos_disponibles,
             default=anos_disponibles
         )
 
-        # Lógica para aplicar el filtro de año si el DataFrame tiene columnas de fecha o año
         if anos_seleccionados and not df_a_exportar.empty:
             cols_fecha = [c for c in df_a_exportar.columns if 'FECHA' in str(c).upper() or 'AÑO' in str(c).upper()]
             
