@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import io
 import os
 import glob
-import time
 import plotly.express as px
 
 # Importaciones de ReportLab para generación de PDFs
@@ -349,7 +348,7 @@ def generar_pdf(titulo, df):
         'T', parent=estilos['Heading1'], fontSize=12, textColor=colors.HexColor('#4CC9F0'), alignment=1
     )
     elementos.append(Paragraph(f"<b>{titulo}</b>", estilo_titulo))
-    elementos.append(Paragraph(f"Fecha: {(datetime.utcnow() - timedelta(hours=5)).strftime('%d/%m/%Y %H:%M')}<br/><br/>", estilos['Normal']))
+    elementos.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}<br/><br/>", estilos['Normal']))
     
     num_cols = max(len(df.columns), 1)
     font_size = 5 if num_cols > 15 else 7
@@ -414,9 +413,7 @@ opcion = st.sidebar.radio("Seleccionar módulo:", menu)
 if st.sidebar.button("🚪 Cerrar Sesión"):
     logout()
 
-# Ajuste directo de hora para Perú (UTC-5) sin dependencias externas
-fecha_actual_peru = datetime.utcnow() - timedelta(hours=5)
-fecha_actual_str = fecha_actual_peru.strftime("%d/%m/%Y %H:%M")
+fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
 
 st.markdown(f"""
     <div class="main-header">
@@ -791,8 +788,7 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
                         "ATENCION": mant_atencion,
                         "OBSERVACION": f"Encontró: {mant_se_encontro} | Queda: {mant_queda} | Carga: {mant_carga}"
                     }
-                    df_target = st.session_state.df_Baterias
-                    st.session_state.df_Baterias = pd.concat([df_target, pd.DataFrame([nuevo_bat])], ignore_index=True)
+                    st.session_state.df_Baterias = pd.concat([st.session_state.df_Baterias, pd.DataFrame([nuevo_bat])], ignore_index=True)
                     guardar_excel(st.session_state.df_Baterias, "Baterias")
                     st.success(f"✅ Cambio de batería guardado para '{tienda_final}'.")
                     st.rerun()
@@ -801,37 +797,63 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
 # EXPORTAR DATOS
 # -------------------------------------------------------------
 elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin", "visor_exportador"]:
-    st.title("📥 Exportar Datos del Sistema TI")
+    st.markdown("## 📥 Exportar Reportes TI")
+    st.caption("Selecciona el módulo, aplica los filtros por año y descarga tu reporte (Excel o PDF).[cite: 6]")
+
+    modulo_export = st.selectbox(
+        "Seleccionar módulo a exportar:", 
+        ["Inventario", "Mantenimiento", "Baterias", "Alquiler"]
+    )
     
-    modulo_exp = st.selectbox("Selecciona el módulo a exportar:", ["Inventario", "Mantenimiento", "Baterias", "Alquiler"])
-    df_exportar = st.session_state.get(f"df_{modulo_exp}", pd.DataFrame())
-    
-    if df_exportar.empty:
-        st.warning("⚠️ No hay datos disponibles para exportar en este módulo.")
+    df_a_exportar = st.session_state.get(f"df_{modulo_export}", pd.DataFrame()).copy()
+
+    if df_a_exportar.empty:
+        st.warning("⚠️ No hay datos disponibles en este módulo para exportar.")
     else:
-        st.dataframe(df_exportar.head(10), use_container_width=True)
-        
-        col_down1, col_down2 = st.columns(2)
-        
-        with col_down1:
-            excel_bytes = exportar_excel(df_exportar)
+        # Filtro por año 2025 y 2026
+        st.markdown("### 📅 Filtrar por Año")
+        anos_disponibles = [2025, 2026]
+        anos_seleccionados = st.multiselect(
+            "Selecciona los años a incluir en la exportación:",
+            options=anos_disponibles,
+            default=anos_disponibles
+        )
+
+        # Lógica para aplicar el filtro de año si el DataFrame tiene columnas de fecha o año
+        if anos_seleccionados and not df_a_exportar.empty:
+            cols_fecha = [c for c in df_a_exportar.columns if 'FECHA' in str(c).upper() or 'AÑO' in str(c).upper()]
+            
+            if cols_fecha:
+                mask_anos = pd.Series(False, index=df_a_exportar.index)
+                for col in cols_fecha:
+                    anos_en_col = pd.to_datetime(df_a_exportar[col], errors='coerce').dt.year
+                    for anio in anos_seleccionados:
+                        mask_anos = mask_anos | (anos_en_col == anio)
+                        mask_anos = mask_anos | df_a_exportar[col].astype(str).str.contains(str(anio), na=False)
+                
+                df_a_exportar = df_a_exportar[mask_anos]
+
+        st.write(f"Vista previa de registros filtrados a exportar ({len(df_a_exportar)} filas):")
+        st.dataframe(df_a_exportar.head(5), use_container_width=True)
+
+        col_ex1, col_ex2 = st.columns(2)
+
+        with col_ex1:
+            excel_bytes = exportar_excel(df_a_exportar)
             st.download_button(
-                label=f"📥 Descargar {modulo_exp} en Excel (.xlsx)",
+                label=f"📥 Descargar {modulo_export} (Excel)",
                 data=excel_bytes,
-                file_name=f"Reporte_{modulo_exp}_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                file_name=f"Reporte_{modulo_export}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
-            
-        with col_down2:
-            try:
-                pdf_bytes = generar_pdf(f"Reporte de {modulo_exp}", df_exportar)
-                st.download_button(
-                    label=f"📄 Descargar {modulo_exp} en PDF",
-                    data=pdf_bytes,
-                    file_name=f"Reporte_{modulo_exp}_{datetime.now().strftime('%Y%m%d')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-            except Exception as e:
-                st.error(f"Error al generar PDF: {e}")
+
+        with col_ex2:
+            pdf_bytes = generar_pdf(f"Reporte de {modulo_export} - TI UPS", df_a_exportar)
+            st.download_button(
+                label=f"📄 Descargar {modulo_export} (PDF)",
+                data=pdf_bytes,
+                file_name=f"Reporte_{modulo_export}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
