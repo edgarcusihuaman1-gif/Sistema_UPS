@@ -96,6 +96,37 @@ def aplicar_estilos_corporativos():
             color: {SUMMARY_VAL_COLOR} !important;
         }}
 
+        /* ------------------------------------------------------------- */
+        /* ENCABEZADOS DE TABLAS (Súper visibles, negrita y sin opacidad) */
+        /* ------------------------------------------------------------- */
+        div[data-testid="stDataFrame"] th, 
+        div[data-testid="stDataEditor"] th,
+        .dataframe th {{
+            background-color: #1D3557 !important;
+            color: #4CC9F0 !important;
+            font-weight: 900 !important;
+            font-size: 1rem !important;
+            opacity: 1 !important;
+            border-bottom: 2px solid #4CC9F0 !important;
+        }}
+        
+        div[data-testid="stDataFrame"] th *, 
+        div[data-testid="stDataEditor"] th * {{
+            color: #4CC9F0 !important;
+            font-weight: 900 !important;
+            opacity: 1 !important;
+        }}
+        
+        div[data-testid="stDataFrame"] td, 
+        div[data-testid="stDataEditor"] td,
+        .dataframe td {{
+            color: #FFFFFF !important;
+            background-color: #1C2541 !important;
+            font-weight: 600 !important;
+            opacity: 1 !important;
+        }}
+        /* ------------------------------------------------------------- */
+
         .main-header {{
             background-color: {BG_CARD};
             padding: 20px 24px;
@@ -186,13 +217,12 @@ def aplicar_estilos_corporativos():
         section[data-testid="stSidebar"] * {{
             color: {TEXT_PRIMARY} !important;
         }}
-        /* TÍTULO LATERAL AGRANDADO Y MODIFICADO */
         section[data-testid="stSidebar"] h1 {{
-            font-size: 1.55rem !important;
-            font-weight: 800 !important;
-            letter-spacing: -0.2px;
-            line-height: 1.25;
-            margin-bottom: 0.2rem !important;
+            font-size: 1.9rem !important;
+            font-weight: 900 !important;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+            margin-bottom: 0.3rem !important;
         }}
         section[data-testid="stSidebar"] p, 
         section[data-testid="stSidebar"] span, 
@@ -367,7 +397,7 @@ def render_kpi(icono, titulo, valor):
     """
     st.markdown(html, unsafe_allow_html=True)
 
-# Menú lateral con el título actualizado a GESTION DE UPS - TI
+# Menú lateral
 st.sidebar.title("💻 GESTION DE UPS - TI")
 st.sidebar.caption(f"👤 **{st.session_state.usuario_actual}**")
 
@@ -384,7 +414,6 @@ opcion = st.sidebar.radio("Seleccionar módulo:", menu)
 if st.sidebar.button("🚪 Cerrar Sesión"):
     logout()
 
-# Cabecera superior común
 fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
 
 st.markdown(f"""
@@ -770,19 +799,42 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
 # -------------------------------------------------------------
 elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin", "visor_exportador"]:
     st.markdown("## 📥 Exportar Reportes TI")
-    st.caption("Selecciona el módulo y el formato de exportación (Excel o PDF).")
+    st.caption("Selecciona el módulo, aplica los filtros por año y descarga tu reporte (Excel o PDF).")
 
     modulo_export = st.selectbox(
         "Seleccionar módulo a exportar:", 
         ["Inventario", "Mantenimiento", "Baterias", "Alquiler"]
     )
     
-    df_a_exportar = st.session_state.get(f"df_{modulo_export}", pd.DataFrame())
+    df_a_exportar = st.session_state.get(f"df_{modulo_export}", pd.DataFrame()).copy()
 
     if df_a_exportar.empty:
         st.warning("⚠️ No hay datos disponibles en este módulo para exportar.")
     else:
-        st.write(f"Vista previa de registros a exportar ({len(df_a_exportar)} filas):")
+        # Filtro por año 2025 y 2026
+        st.markdown("### 📅 Filtrar por Año")
+        anos_disponibles = [2025, 2026]
+        anos_seleccionados = st.multiselect(
+            "Selecciona los años a incluir en la exportación:",
+            options=anos_disponibles,
+            default=anos_disponibles
+        )
+
+        # Lógica para aplicar el filtro de año si el DataFrame tiene columnas de fecha o año
+        if anos_seleccionados and not df_a_exportar.empty:
+            cols_fecha = [c for c in df_a_exportar.columns if 'FECHA' in str(c).upper() or 'AÑO' in str(c).upper()]
+            
+            if cols_fecha:
+                mask_anos = pd.Series(False, index=df_a_exportar.index)
+                for col in cols_fecha:
+                    anos_en_col = pd.to_datetime(df_a_exportar[col], errors='coerce').dt.year
+                    for anio in anos_seleccionados:
+                        mask_anos = mask_anos | (anos_en_col == anio)
+                        mask_anos = mask_anos | df_a_exportar[col].astype(str).str.contains(str(anio), na=False)
+                
+                df_a_exportar = df_a_exportar[mask_anos]
+
+        st.write(f"Vista previa de registros filtrados a exportar ({len(df_a_exportar)} filas):")
         st.dataframe(df_a_exportar.head(5), use_container_width=True)
 
         col_ex1, col_ex2 = st.columns(2)
