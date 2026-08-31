@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import io
 import os
 import glob
@@ -12,6 +13,9 @@ from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+
+# Zona horaria de Perú
+PERU_TZ = ZoneInfo("America/Lima")
 
 # Configuración inicial de la página
 st.set_page_config(
@@ -349,7 +353,7 @@ def generar_pdf(titulo, df):
         'T', parent=estilos['Heading1'], fontSize=12, textColor=colors.HexColor('#4CC9F0'), alignment=1
     )
     elementos.append(Paragraph(f"<b>{titulo}</b>", estilo_titulo))
-    elementos.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}<br/><br/>", estilos['Normal']))
+    elementos.append(Paragraph(f"Fecha: {datetime.now(PERU_TZ).strftime('%d/%m/%Y %H:%M')}<br/><br/>", estilos['Normal']))
     
     num_cols = max(len(df.columns), 1)
     font_size = 5 if num_cols > 15 else 7
@@ -414,7 +418,7 @@ opcion = st.sidebar.radio("Seleccionar módulo:", menu)
 if st.sidebar.button("🚪 Cerrar Sesión"):
     logout()
 
-fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+fecha_actual_str = datetime.now(PERU_TZ).strftime("%d/%m/%Y %H:%M")
 
 st.markdown(f"""
     <div class="main-header">
@@ -752,7 +756,7 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
     with st.form("f_nuevo", clear_on_submit=False):
         f1, f2 = st.columns(2)
         with f1:
-            fec = st.date_input("Fecha:", datetime.now())
+            fec = st.date_input("Fecha:", datetime.now(PERU_TZ).date())
             mant_atencion = st.text_input("MANT. ATENCION:", value=mant_atencion_auto)
         with f2:
             modelo = st.text_input("Modelo / Serie UPS:", value=modelo_auto)
@@ -844,7 +848,7 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
             st.download_button(
                 label=f"📥 Descargar {modulo_export} (Excel)",
                 data=excel_bytes,
-                file_name=f"Reporte_{modulo_export}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                file_name=f"Reporte_{modulo_export}_{datetime.now(PERU_TZ).strftime('%Y%m%d_%H%M')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
@@ -854,7 +858,8 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
             st.download_button(
                 label=f"📄 Descargar {modulo_export} (PDF)",
                 data=pdf_bytes,
-                file_name=f"Reporte_{modulo_export}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                file_name=f"Reporte_{modulo_export}_{datetime.now(PERU_TZ).strftime('%Y%m%d_%H%M')}.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
+```[cite: 5]
