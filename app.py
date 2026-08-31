@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import pytz
 import io
 import os
 import glob
@@ -350,7 +349,7 @@ def generar_pdf(titulo, df):
         'T', parent=estilos['Heading1'], fontSize=12, textColor=colors.HexColor('#4CC9F0'), alignment=1
     )
     elementos.append(Paragraph(f"<b>{titulo}</b>", estilo_titulo))
-    elementos.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}<br/><br/>", estilos['Normal']))
+    elementos.append(Paragraph(f"Fecha: {(datetime.utcnow() - timedelta(hours=5)).strftime('%d/%m/%Y %H:%M')}<br/><br/>", estilos['Normal']))
     
     num_cols = max(len(df.columns), 1)
     font_size = 5 if num_cols > 15 else 7
@@ -415,9 +414,8 @@ opcion = st.sidebar.radio("Seleccionar módulo:", menu)
 if st.sidebar.button("🚪 Cerrar Sesión"):
     logout()
 
-# Corrección de horario para la zona horaria de Perú (America/Lima)
-tz_peru = pytz.timezone('America/Lima')
-fecha_actual_peru = datetime.now(tz_peru)
+# Ajuste directo de hora para Perú (UTC-5) sin dependencias externas
+fecha_actual_peru = datetime.utcnow() - timedelta(hours=5)
 fecha_actual_str = fecha_actual_peru.strftime("%d/%m/%Y %H:%M")
 
 st.markdown(f"""
@@ -821,7 +819,7 @@ elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin"
                 label=f"📥 Descargar {modulo_exp} en Excel (.xlsx)",
                 data=excel_bytes,
                 file_name=f"Reporte_{modulo_exp}_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheet.mlfworkspace",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
             
