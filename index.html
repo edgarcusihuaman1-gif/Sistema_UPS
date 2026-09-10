@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard TI - UPS</title>
+    <title>Sistemas TI - Control de UPS</title>
     <style>
         body {
-            background-color: #0B132B;
+            background-color: #0b132b;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -13,27 +13,27 @@
             align-items: center;
             min-height: 100vh;
         }
-        .container {
-            max-width: 1300px;
+        .frame {
             width: 100%;
-            background: #1C2541;
-            padding: 10px;
+            max-width: 1250px;
+            height: 720px; /* Ajusta esto para recortar exactamente la altura que deseas mostrar */
+            overflow: hidden;
             border-radius: 12px;
-            border: 1px solid #3A506B;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border: 1px solid #3a506b;
+            background: #0b132b;
         }
         img {
             width: 100%;
-            height: auto;
-            border-radius: 8px;
-            display: block;
+            /* Mueve la imagen hacia arriba para ocultar los gráficos de abajo y dejar solo el título y tarjetas */
+            transform: translateY(0px); 
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Enlace directo a tu imagen en GitHub -->
-        <img src="https://raw.githubusercontent.com/edgarcusihuaman1-gif/Sistema_UPS/main/Sistema_UPS.jpeg" alt="Dashboard Principal">
+    <div class="frame">
+        <!-- Reemplaza con tu enlace Raw de GitHub -->
+        <img src="https://raw.githubusercontent.com/edgarcusihuaman1-gif/Sistema_UPS/main/Sistema_UPS.jpeg" alt="Panel de Control TI">
     </div>
 </body>
 </html>
