@@ -2,38 +2,61 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistemas TI - Control de UPS</title>
     <style>
         body {
-            background-color: #0b132b;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            background-color: #0b1329;
+            font-family: Arial, sans-serif;
+            color: #ffffff;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
         }
-        .frame {
-            width: 100%;
-            max-width: 1250px;
-            height: 720px; /* Ajusta esto para recortar exactamente la altura que deseas mostrar */
-            overflow: hidden;
+        .container {
+            text-align: center;
+            max-width: 95%;
+            width: 1400px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        p {
+            font-size: 16px;
+            color: #a0aec0;
+            margin-bottom: 20px;
+        }
+        .image-box {
+            background-color: #0d1b3a;
+            border: 2px solid #1e293b;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            border: 1px solid #3a506b;
-            background: #0b132b;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         img {
             width: 100%;
-            /* Mueve la imagen hacia arriba para ocultar los gráficos de abajo y dejar solo el título y tarjetas */
-            transform: translateY(0px); 
+            height: auto;
+            border-radius: 8px;
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="frame">
-        <!-- Reemplaza con tu enlace Raw de GitHub -->
-        <img src="https://raw.githubusercontent.com/edgarcusihuaman1-gif/Sistema_UPS/main/Sistema_UPS.jpeg" alt="Panel de Control TI">
+
+    <div class="container">
+        <h1>Sistemas TI - Control de UPS</h1>
+        <p>Plataforma centralizada de infraestructura para el control de inventario, mantenimiento, baterías y alquileres.</p>
+        
+        <div class="image-box">
+            <img src="https://raw.githubusercontent.com/edgarcusihuaman1-gif/Sistema_UPS/principal/Sistema_UPS.jpeg" alt="Panel de Control TI">
+        </div>
     </div>
+
 </body>
 </html>
