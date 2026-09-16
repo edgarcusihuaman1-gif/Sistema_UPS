@@ -193,29 +193,6 @@ def aplicar_estilos_corporativos():
             line-height: 1.1;
         }}
 
-        .summary-card {{
-            background-color: {BG_CARD};
-            border: 1px solid {BORDER_COLOR};
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 8px;
-        }}
-        .summary-title {{
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: {TEXT_PRIMARY};
-        }}
-        .summary-val {{
-            font-size: 1.2rem;
-            font-weight: 900;
-            color: {SUMMARY_VAL_COLOR};
-            margin: 4px 0;
-        }}
-        .summary-sub {{
-            font-size: 0.78rem;
-            color: {TEXT_SECONDARY};
-        }}
-
         section[data-testid="stSidebar"] {{
             background-color: {BG_CARD} !important;
             border-right: 1px solid {BORDER_COLOR};
@@ -568,11 +545,7 @@ elif opcion == "🔋 Cambio de baterías":
     df_bat = st.session_state.df_Baterias
     df_bat_filtrado = df_bat.copy()
 
-    # Detectar años disponibles en las columnas de cantidad o fechas si existen
     anos_bat_opciones = ["Todos"]
-    col_bat_cols = [c for c in df_bat.columns if 'CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()]
-    
-    # Extraer años de las columnas (ej: si dice "CANTIDAD 2025" o "26")
     for col in df_bat.columns:
         c_str = str(col)
         for anio_prueba in range(2020, 2035):
@@ -581,7 +554,7 @@ elif opcion == "🔋 Cambio de baterías":
                     anos_bat_opciones.append(anio_prueba)
 
     if len(anos_bat_opciones) == 1:
-        anos_bat_opciones.extend([2025, 2026]) # Respaldos por defecto si no detecta texto en columnas
+        anos_bat_opciones.extend([2025, 2026])
 
     col_f_bateria, col_busqueda_bat = st.columns([1.5, 2.5])
     with col_f_bateria:
@@ -589,9 +562,7 @@ elif opcion == "🔋 Cambio de baterías":
     with col_busqueda_bat:
         busqueda_bat = st.text_input("🔍 Buscar", placeholder="Tienda, serie, modelo...", key="busqueda_baterias_txt")
 
-    # Filtrar columnas o filas según el año seleccionado de baterías
     if anio_sel_bat != "Todos":
-        # Filtrar columnas que correspondan al año elegido si están divididas por año
         cols_a_mantener = []
         for col in df_bat.columns:
             c_upper = str(col).upper()
@@ -675,5 +646,84 @@ elif opcion == "🤝 Alquileres":
 # NUEVO REGISTRO
 # -------------------------------------------------------------
 elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
-    st.title("📝 Registrar Nuevo Evento TI")
-    st.info("Módulo de registro rápido integrado al sistema corporativo.")
+    st.markdown("## 📝 Registrar Nuevo Evento TI")
+    st.caption("Agrega un nuevo registro directamente a cualquiera de los módulos principales.")
+
+    tipo_reg = st.selectbox("Seleccione el módulo donde desea agregar el registro:", ["Inventario UPS", "Mantenimientos", "Cambio de baterías", "Alquileres"])
+
+    if tipo_reg == "Inventario UPS":
+        df_actual = st.session_state.df_Inventario
+        clave_reg = "Inventario"
+    elif tipo_reg == "Mantenimientos":
+        df_actual = st.session_state.df_Mantenimiento
+        clave_reg = "Mantenimiento"
+    elif tipo_reg == "Cambio de baterías":
+        df_actual = st.session_state.df_Baterias
+        clave_reg = "Baterias"
+    else:
+        df_actual = st.session_state.df_Alquiler
+        clave_reg = "Alquiler"
+
+    st.markdown("### Ingrese los datos del nuevo registro:")
+    with st.form("form_nuevo_registro"):
+        # Creamos campos de entrada dinámicos basados en las columnas del dataframe actual
+        nuevos_datos = {}
+        cols = list(df_actual.columns)
+        
+        # Agrupamos en columnas visuales de Streamlit para mejor diseño
+        for i in range(0, len(cols), 2):
+            c1, c2 = st.columns(2)
+            with c1:
+                col_name = cols[i]
+                nuevos_datos[col_name] = st.text_input(f"{col_name}")
+            with c2:
+                if i + 1 < len(cols):
+                    col_name_2 = cols[i + 1]
+                    nuevos_datos[col_name_2] = st.text_input(f"{col_name_2}")
+
+        submitted = st.form_submit_button("➕ Agregar y Guardar en Excel", use_container_width=True)
+        if submitted:
+            # Crear nueva fila como DataFrame
+            nueva_fila = pd.DataFrame([nuevos_datos])
+            # Concatenar
+            df_actualizado = pd.concat([df_actual, nueva_fila], ignore_index=True)
+            
+            # Guardar en session_state y excel
+            st.session_state[f"df_{clave_reg}"] = df_actualizado
+            guardar_excel(df_actualizado, clave_reg)
+            st.success(f"✅ ¡Nuevo registro agregado con éxito en {tipo_reg}!")
+
+# -------------------------------------------------------------
+# EXPORTAR DATOS
+# -------------------------------------------------------------
+elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin", "visor_exportador"]:
+    st.markdown("## 📥 Exportar Módulos del Sistema")
+    st.caption("Descarga la información consolidada en formato Excel.")
+
+    mod_exp = st.selectbox("Seleccione el módulo a exportar:", ["Inventario UPS", "Mantenimiento", "Cambio de baterías", "Alquiler"])
+    
+    if mod_exp == "Inventario UPS":
+        df_exp = st.session_state.df_Inventario
+        nombre_file = "Inventario_UPS.xlsx"
+    elif mod_exp == "Mantenimiento":
+        df_exp = st.session_state.df_Mantenimiento
+        nombre_file = "Mantenimiento_UPS.xlsx"
+    elif mod_exp == "Cambio de baterías":
+        df_exp = st.session_state.df_Baterias
+        nombre_file = "Cambios_Baterias.xlsx"
+    else:
+        df_exp = st.session_state.df_Alquiler
+        nombre_file = "alquiler_de_UPS.xlsx"
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df_exp.to_excel(writer, index=False)
+    buffer.seek(0)
+
+    st.download_button(
+        label=f"📥 Descargar {mod_exp} en Excel",
+        data=buffer,
+        file_name=nombre_file,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
