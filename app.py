@@ -459,6 +459,88 @@ if opcion == "📊 Panel de control":
     with k7: render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
     with k8: render_kpi("🔋", f"BATERÍAS {anio_actual}", f"{val_bat_actual:,}")
 
+    st.markdown("---")
+
+    # Layout de Gráficos y Panel lateral de Resumen Ejecutivo
+    col_graficos, col_resumen = st.columns([2.2, 1])
+
+    with col_graficos:
+        st.markdown("### 📅 Comparativo por año")
+        
+        # Gráfico Baterías
+        st.markdown("##### 🔋 Cambios de baterías")
+        df_chart_bat = pd.DataFrame({
+            "Año": [str(anio_actual - 1), str(anio_actual)],
+            "Cantidad": [val_bat_anterior, val_bat_actual]
+        })
+        fig_bat = px.bar(
+            df_chart_bat, x="Cantidad", y="Año", orientation='h',
+            text="Cantidad", color="Año",
+            color_discrete_map={str(anio_actual - 1): "#1F6FEB", str(anio_actual): "#388BFd"}
+        )
+        fig_bat.update_layout(
+            paper_bgcolor=BG_CARD, plot_bgcolor=BG_CARD,
+            font=dict(color=TEXT_PRIMARY),
+            margin=dict(l=10, r=10, t=10, b=10),
+            height=200,
+            xaxis=dict(showgrid=True, gridcolor=BORDER_COLOR),
+            yaxis=dict(showgrid=False),
+            showlegend=False
+        )
+        fig_bat.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+        st.plotly_chart(fig_bat, use_container_width=True)
+
+        # Gráfico Mantenimientos
+        st.markdown("##### 🛠️ Mantenimientos")
+        val_mant_anterior = val_mant_total - val_mant_actual
+        df_chart_mant = pd.DataFrame({
+            "Año": [str(anio_actual - 1), str(anio_actual)],
+            "Cantidad": [val_mant_anterior, val_mant_actual]
+        })
+        fig_mant = px.bar(
+            df_chart_mant, x="Año", y="Cantidad",
+            text="Cantidad", color="Año",
+            color_discrete_map={str(anio_actual - 1): "#1F6FEB", str(anio_actual): "#388BFd"}
+        )
+        fig_mant.update_layout(
+            paper_bgcolor=BG_CARD, plot_bgcolor=BG_CARD,
+            font=dict(color=TEXT_PRIMARY),
+            margin=dict(l=10, r=10, t=10, b=10),
+            height=220,
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=True, gridcolor=BORDER_COLOR),
+            showlegend=False
+        )
+        fig_mant.update_traces(textfont_size=12, textposition="outside", cliponaxis=False)
+        st.plotly_chart(fig_mant, use_container_width=True)
+
+    with col_resumen:
+        st.markdown("### 📌 Resumen ejecutivo")
+        
+        st.markdown(f"""
+        <div class="kpi-card" style="margin-bottom: 12px;">
+            <div class="kpi-header">📦 Inventario actual</div>
+            <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">{val_inv:,} UPS</div>
+            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Equipos registrados en el inventario.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="kpi-card" style="margin-bottom: 12px;">
+            <div class="kpi-header">🔋 Baterías {anio_actual}</div>
+            <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">{val_bat_actual:,}</div>
+            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Baterías cambiadas durante {anio_actual}.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="kpi-card" style="margin-bottom: 12px;">
+            <div class="kpi-header">💰 Alquileres</div>
+            <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</div>
+            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Monto acumulado real de alquileres.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
 # -------------------------------------------------------------
 # INVENTARIO UPS
 # -------------------------------------------------------------
@@ -491,7 +573,7 @@ elif opcion == "📦 Inventario UPS":
         st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
 
 # -------------------------------------------------------------
-# MANTENIMIENTO DE UPS (CON FILTRO DE AÑO)
+# MANTENIMIENTO DE UPS
 # -------------------------------------------------------------
 elif opcion == "🛠️ Mantenimientos":
     st.markdown("## 🛠️ Mantenimiento de UPS")
@@ -537,7 +619,7 @@ elif opcion == "🛠️ Mantenimientos":
         st.dataframe(df_mant_filtrado, use_container_width=True, hide_index=True)
 
 # -------------------------------------------------------------
-# CAMBIO BATERÍAS (CON FILTRO DE AÑO Y COLUMNAS)
+# CAMBIO BATERÍAS
 # -------------------------------------------------------------
 elif opcion == "🔋 Cambio de baterías":
     st.markdown("## 🔋 Cambios de Baterías")
@@ -666,11 +748,9 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
 
     st.markdown("### Ingrese los datos del nuevo registro:")
     with st.form("form_nuevo_registro"):
-        # Creamos campos de entrada dinámicos basados en las columnas del dataframe actual
         nuevos_datos = {}
         cols = list(df_actual.columns)
         
-        # Agrupamos en columnas visuales de Streamlit para mejor diseño
         for i in range(0, len(cols), 2):
             c1, c2 = st.columns(2)
             with c1:
@@ -683,12 +763,8 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
 
         submitted = st.form_submit_button("➕ Agregar y Guardar en Excel", use_container_width=True)
         if submitted:
-            # Crear nueva fila como DataFrame
             nueva_fila = pd.DataFrame([nuevos_datos])
-            # Concatenar
             df_actualizado = pd.concat([df_actual, nueva_fila], ignore_index=True)
-            
-            # Guardar en session_state y excel
             st.session_state[f"df_{clave_reg}"] = df_actualizado
             guardar_excel(df_actualizado, clave_reg)
             st.success(f"✅ ¡Nuevo registro agregado con éxito en {tipo_reg}!")
