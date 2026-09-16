@@ -2,23 +2,22 @@
 TITLE Sincronizar Excel con GitHub y la Nube
 color 0B
 echo ========================================================
-echo   SINCRONIZANDO CON GITHUB...
+echo   GUARDANDO CAMBIOS LOCALES...
 echo ========================================================
 
-:: Descarga primero los cambios remotos para evitar conflictos
+git add .
+git commit -m "Guardado temporal antes de sincronizar: %date% %time%"
+
+echo ========================================================
+echo   DESCARGANDO CAMBIOS DE LA NUBE...
+echo ========================================================
+
 git pull origin main --rebase
 
 echo ========================================================
-echo   SUBIENDO TUS CAMBIOS DE EXCEL A LA NUBE...
+echo   SUBIENDO TODO A LA NUBE...
 echo ========================================================
 
-:: Agrega todos los archivos modificados
-git add .
-
-:: Guarda los cambios localmente
-git commit -m "Actualizacion automatica de Excel: %date% %time%"
-
-:: Sube los cambios al repositorio
 git push origin main
 
 echo ========================================================
