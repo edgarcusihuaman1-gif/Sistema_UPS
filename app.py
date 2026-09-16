@@ -521,7 +521,6 @@ elif opcion == "🛠️ Mantenimientos":
     
     df_mant = st.session_state.df_Mantenimiento.copy()
     
-    # Extraer años disponibles basados en las columnas de fecha
     anos_disponibles = ["Todos"]
     col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
     if col_mant_f:
@@ -536,12 +535,10 @@ elif opcion == "🛠️ Mantenimientos":
 
     df_mant_filtrado = df_mant.copy()
 
-    # Aplicar filtro de año
     if anio_seleccionado != "Todos" and col_mant_f:
         anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce').dt.year
         df_mant_filtrado = df_mant_filtrado[anos_fila == anio_seleccionado]
 
-    # Aplicar filtro de texto/tienda
     if busqueda_tienda.strip():
         mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
         df_mant_filtrado = df_mant_filtrado[mask]
@@ -563,19 +560,48 @@ elif opcion == "🛠️ Mantenimientos":
         st.dataframe(df_mant_filtrado, use_container_width=True, hide_index=True)
 
 # -------------------------------------------------------------
-# CAMBIO BATERÍAS (CON FILTRO DE AÑO / COLUMNAS)
+# CAMBIO BATERÍAS (CON FILTRO DE AÑO Y COLUMNAS)
 # -------------------------------------------------------------
 elif opcion == "🔋 Cambio de baterías":
     st.markdown("## 🔋 Cambios de Baterías")
     
     df_bat = st.session_state.df_Baterias
-    
-    # Detectar años en las columnas del archivo de baterías (ej. columnas que contengan '25', '26', etc.)
-    col_cant_cols = [c for c in df_bat.columns if 'CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()]
-    
-    busqueda_bat = st.text_input("🔍 Buscar", placeholder="Tienda, serie, modelo...")
     df_bat_filtrado = df_bat.copy()
-        
+
+    # Detectar años disponibles en las columnas de cantidad o fechas si existen
+    anos_bat_opciones = ["Todos"]
+    col_bat_cols = [c for c in df_bat.columns if 'CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()]
+    
+    # Extraer años de las columnas (ej: si dice "CANTIDAD 2025" o "26")
+    for col in df_bat.columns:
+        c_str = str(col)
+        for anio_prueba in range(2020, 2035):
+            if str(anio_prueba) in c_str or str(anio_prueba)[-2:] in c_str:
+                if anio_prueba not in [int(x) for x in anos_bat_opciones if x != "Todos"]:
+                    anos_bat_opciones.append(anio_prueba)
+
+    if len(anos_bat_opciones) == 1:
+        anos_bat_opciones.extend([2025, 2026]) # Respaldos por defecto si no detecta texto en columnas
+
+    col_f_bateria, col_busqueda_bat = st.columns([1.5, 2.5])
+    with col_f_bateria:
+        anio_sel_bat = st.selectbox("📅 Filtrar Año Baterías:", options=anos_bat_opciones, key="filtro_anio_bat")
+    with col_busqueda_bat:
+        busqueda_bat = st.text_input("🔍 Buscar", placeholder="Tienda, serie, modelo...", key="busqueda_baterias_txt")
+
+    # Filtrar columnas o filas según el año seleccionado de baterías
+    if anio_sel_bat != "Todos":
+        # Filtrar columnas que correspondan al año elegido si están divididas por año
+        cols_a_mantener = []
+        for col in df_bat.columns:
+            c_upper = str(col).upper()
+            if any(k in c_upper for k in ['TIENDA', 'ITEM', 'MARCA', 'MODELO', 'SERIE', 'RAZON']):
+                cols_a_mantener.append(col)
+            elif str(anio_sel_bat) in str(col) or str(anio_sel_bat)[-2:] in str(col):
+                cols_a_mantener.append(col)
+        if cols_a_mantener:
+            df_bat_filtrado = df_bat[cols_a_mantener]
+
     if busqueda_bat.strip():
         mask = df_bat_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_bat, case=False, na=False)).any(axis=1)
         df_bat_filtrado = df_bat_filtrado[mask]
