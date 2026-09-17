@@ -294,21 +294,18 @@ if not st.session_state.autenticado:
     login()
     st.stop()
 
-def limpiar_dataframe_mantenimiento(df):
+def limpiar_fechas_dataframe(df):
     if df.empty:
         return df
-    # Eliminar columnas vacías o que comiencen con Unnamed
     cols_validas = [c for c in df.columns if not str(c).startswith("Unnamed")]
     df = df[cols_validas].copy()
     
-    # Formatear columnas de fecha de forma profesional (DD/MM/YYYY)
     for col in df.columns:
         if "FECHA" in str(col).upper():
             fechas_parsed = pd.to_datetime(df[col], errors='coerce')
-            df[col] = fechas_parsed.dt.strftime('%d/%m/%Y').fillna(df[col].astype(str))
+            df[col] = fechas_parsed.dt.strftime('%Y-%m-%d').fillna(df[col].astype(str))
             df[col] = df[col].str.replace("00:00:00", "").str.strip()
-            df[col] = df[col].replace(["NaT", "nan", "None", ""], pd.NA)
-            
+            df[col] = df[col].replace(["NaT", "nan", "None"], "")
     return df
 
 def cargar_excel(clave):
@@ -319,9 +316,10 @@ def cargar_excel(clave):
                 df = pd.read_excel(ruta, sheet_name='UPS Inventario')
             elif clave == "Mantenimiento":
                 df = pd.read_excel(ruta, header=1)
-                df = limpiar_dataframe_mantenimiento(df)
+                df = limpiar_fechas_dataframe(df)
             elif clave == "Baterias":
                 df = pd.read_excel(ruta, header=0)
+                df = limpiar_fechas_dataframe(df)
             else:
                 df = pd.read_excel(ruta)
             return df
@@ -420,7 +418,7 @@ if opcion == "📊 Panel de control":
         col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
         if col_mant_f:
             val_mant_total = int(df_mant[col_mant_f[0]].notna().sum())
-            anos_col = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce', format='%d/%m/%Y').dt.year
+            anos_col = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year
             val_mant_actual = int((anos_col == anio_actual).sum())
         else:
             val_mant_total = len(df_mant)
@@ -593,7 +591,7 @@ elif opcion == "🛠️ Mantenimientos":
     
     anos_disponibles = ["Todos"]
     if col_mant_f:
-        anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce', format='%d/%m/%Y').dt.year.dropna().unique()
+        anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year.dropna().unique()
         anos_disponibles.extend(sorted([int(a) for a in anos_encontrados], reverse=True))
 
     col_filtro_ano, col_busqueda_t = st.columns([1.5, 2.5])
@@ -605,7 +603,7 @@ elif opcion == "🛠️ Mantenimientos":
     df_mant_filtrado = df_mant.copy()
 
     if anio_seleccionado != "Todos" and col_mant_f:
-        anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce', format='%d/%m/%Y').dt.year
+        anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce').dt.year
         df_mant_filtrado = df_mant_filtrado[anos_fila == anio_seleccionado]
 
     if busqueda_tienda.strip():
