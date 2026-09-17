@@ -555,17 +555,27 @@ if opcion == "📊 Panel de control":
 elif opcion == "📦 Inventario UPS":
     st.markdown("## 📦 Inventario de UPS")
     
-    col_busqueda, col_registros = st.columns([3.5, 1])
     df_inv = st.session_state.df_Inventario
     
+    # Obtener marcas disponibles
+    cols_marca_inv = [c for c in df_inv.columns if str(c).upper().strip() == 'MARCA']
+    marcas_inv = ["Todas"]
+    if cols_marca_inv:
+        marcas_inv.extend(sorted(df_inv[cols_marca_inv[0]].dropna().astype(str).unique()))
+
+    col_filtro_marca, col_busqueda, col_registros = st.columns([1.5, 2.5, 1])
+    with col_filtro_marca:
+        marca_sel_inv = st.selectbox("🏷️ Filtrar Marca:", options=marcas_inv, key="filtro_marca_inv")
     with col_busqueda:
-        busqueda = st.text_input("🔍 Buscar UPS", placeholder="Escribe un modelo, tienda, serie, marca...")
+        busqueda = st.text_input("🔍 Buscar UPS", placeholder="Modelo, tienda, serie...")
     
+    df_mostrar = df_inv.copy()
+    if marca_sel_inv != "Todas" and cols_marca_inv:
+        df_mostrar = df_mostrar[df_mostrar[cols_marca_inv[0]].astype(str) == marca_sel_inv]
+
     if busqueda.strip():
-        mask = df_inv.astype(str).apply(lambda row: row.str.contains(busqueda, case=False, na=False)).any(axis=1)
-        df_mostrar = df_inv[mask]
-    else:
-        df_mostrar = df_inv
+        mask = df_mostrar.astype(str).apply(lambda row: row.str.contains(busqueda, case=False, na=False)).any(axis=1)
+        df_mostrar = df_mostrar[mask]
 
     with col_registros:
         render_kpi("", "Registros", f"{len(df_mostrar):,}")
@@ -594,17 +604,28 @@ elif opcion == "🛠️ Mantenimientos":
         anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year.dropna().unique()
         anos_disponibles.extend(sorted([int(a) for a in anos_encontrados], reverse=True))
 
-    col_filtro_ano, col_busqueda_t = st.columns([1.5, 2.5])
+    # Obtener marcas disponibles para Mantenimiento
+    cols_marca_mant = [c for c in df_mant.columns if str(c).upper().strip() == 'MARCA']
+    marcas_mant = ["Todas"]
+    if cols_marca_mant:
+        marcas_mant.extend(sorted(df_mant[cols_marca_mant[0]].dropna().astype(str).unique()))
+
+    col_filtro_ano, col_filtro_marca, col_busqueda_t = st.columns([1.2, 1.5, 2])
     with col_filtro_ano:
         anio_seleccionado = st.selectbox("📅 Filtrar por Año:", options=anos_disponibles)
+    with col_filtro_marca:
+        marca_sel_mant = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_mant, key="filtro_marca_mant")
     with col_busqueda_t:
-        busqueda_tienda = st.text_input("🔎 Buscar tienda", placeholder="Nombre de tienda...")
+        busqueda_tienda = st.text_input("🔎 Buscar texto", placeholder="Tienda, modelo, serie...")
 
     df_mant_filtrado = df_mant.copy()
 
     if anio_seleccionado != "Todos" and col_mant_f:
         anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce').dt.year
         df_mant_filtrado = df_mant_filtrado[anos_fila == anio_seleccionado]
+
+    if marca_sel_mant != "Todas" and cols_marca_mant:
+        df_mant_filtrado = df_mant_filtrado[df_mant_filtrado[cols_marca_mant[0]].astype(str) == marca_sel_mant]
 
     if busqueda_tienda.strip():
         mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
@@ -646,9 +667,17 @@ elif opcion == "🔋 Cambio de baterías":
     if len(anos_bat_opciones) == 1:
         anos_bat_opciones.extend([2025, 2026])
 
-    col_f_bateria, col_busqueda_bat = st.columns([1.5, 2.5])
+    # Obtener marcas disponibles para Baterías
+    cols_marca_bat = [c for c in df_bat.columns if str(c).upper().strip() == 'MARCA']
+    marcas_bat = ["Todas"]
+    if cols_marca_bat:
+        marcas_bat.extend(sorted(df_bat[cols_marca_bat[0]].dropna().astype(str).unique()))
+
+    col_f_bateria, col_f_marca_bat, col_busqueda_bat = st.columns([1.2, 1.5, 2])
     with col_f_bateria:
         anio_sel_bat = st.selectbox("📅 Filtrar Año Baterías:", options=anos_bat_opciones, key="filtro_anio_bat")
+    with col_f_marca_bat:
+        marca_sel_bat = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_bat, key="filtro_marca_bat")
     with col_busqueda_bat:
         busqueda_bat = st.text_input("🔍 Buscar", placeholder="Tienda, serie, modelo...", key="busqueda_baterias_txt")
 
@@ -670,6 +699,9 @@ elif opcion == "🔋 Cambio de baterías":
             if col_cant_ano:
                 df_bat_filtrado[col_cant_ano] = pd.to_numeric(df_bat_filtrado[col_cant_ano], errors='coerce').fillna(0)
                 df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[col_cant_ano] > 0]
+
+    if marca_sel_bat != "Todas" and cols_marca_bat:
+        df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[cols_marca_bat[0]].astype(str) == marca_sel_bat]
 
     if busqueda_bat.strip():
         mask = df_bat_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_bat, case=False, na=False)).any(axis=1)
