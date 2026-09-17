@@ -563,13 +563,28 @@ elif opcion == "📦 Inventario UPS":
     if cols_marca_inv:
         marcas_inv.extend(sorted(df_inv[cols_marca_inv[0]].dropna().astype(str).unique()))
 
-    col_filtro_marca, col_busqueda, col_registros = st.columns([1.5, 2.5, 1])
-    with col_filtro_marca:
-        marca_sel_inv = st.selectbox("🏷️ Filtrar Marca:", options=marcas_inv, key="filtro_marca_inv")
+    # Simular o extraer años si existen columnas de fecha en inventario
+    col_inv_f = [c for c in df_inv.columns if "FECHA" in str(c).upper()]
+    anos_inv = ["Todos"]
+    if col_inv_f:
+        anos_encontrados_inv = pd.to_datetime(df_inv[col_inv_f[0]], errors='coerce').dt.year.dropna().unique()
+        anos_inv.extend(sorted([int(a) for a in anos_encontrados_inv], reverse=True))
+    else:
+        anos_inv.extend([2025, 2026])
+
+    col_f_ano, col_f_marca, col_busqueda, col_registros = st.columns([1.2, 1.5, 2.3, 1])
+    with col_f_ano:
+        anio_sel_inv = st.selectbox("📅 Filtrar Año:", options=anos_inv, key="filtro_anio_inv")
+    with col_f_marca:
+        marca_sel_inv = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_inv, key="filtro_marca_inv")
     with col_busqueda:
         busqueda = st.text_input("🔍 Buscar UPS", placeholder="Modelo, tienda, serie...")
     
     df_mostrar = df_inv.copy()
+    if anio_sel_inv != "Todos" and col_inv_f:
+        anos_fila_inv = pd.to_datetime(df_mostrar[col_inv_f[0]], errors='coerce').dt.year
+        df_mostrar = df_mostrar[anos_fila_inv == anio_sel_inv]
+
     if marca_sel_inv != "Todas" and cols_marca_inv:
         df_mostrar = df_mostrar[df_mostrar[cols_marca_inv[0]].astype(str) == marca_sel_inv]
 
@@ -604,15 +619,14 @@ elif opcion == "🛠️ Mantenimientos":
         anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year.dropna().unique()
         anos_disponibles.extend(sorted([int(a) for a in anos_encontrados], reverse=True))
 
-    # Obtener marcas disponibles para Mantenimiento
     cols_marca_mant = [c for c in df_mant.columns if str(c).upper().strip() == 'MARCA']
     marcas_mant = ["Todas"]
     if cols_marca_mant:
         marcas_mant.extend(sorted(df_mant[cols_marca_mant[0]].dropna().astype(str).unique()))
 
-    col_filtro_ano, col_filtro_marca, col_busqueda_t = st.columns([1.2, 1.5, 2])
+    col_filtro_ano, col_filtro_marca, col_busqueda_t = st.columns([1.2, 1.5, 2.5])
     with col_filtro_ano:
-        anio_seleccionado = st.selectbox("📅 Filtrar por Año:", options=anos_disponibles)
+        anio_seleccionado = st.selectbox("📅 Filtrar por Año:", options=anos_disponibles, key="filtro_anio_mant")
     with col_filtro_marca:
         marca_sel_mant = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_mant, key="filtro_marca_mant")
     with col_busqueda_t:
@@ -667,13 +681,12 @@ elif opcion == "🔋 Cambio de baterías":
     if len(anos_bat_opciones) == 1:
         anos_bat_opciones.extend([2025, 2026])
 
-    # Obtener marcas disponibles para Baterías
     cols_marca_bat = [c for c in df_bat.columns if str(c).upper().strip() == 'MARCA']
     marcas_bat = ["Todas"]
     if cols_marca_bat:
         marcas_bat.extend(sorted(df_bat[cols_marca_bat[0]].dropna().astype(str).unique()))
 
-    col_f_bateria, col_f_marca_bat, col_busqueda_bat = st.columns([1.2, 1.5, 2])
+    col_f_bateria, col_f_marca_bat, col_busqueda_bat = st.columns([1.2, 1.5, 2.5])
     with col_f_bateria:
         anio_sel_bat = st.selectbox("📅 Filtrar Año Baterías:", options=anos_bat_opciones, key="filtro_anio_bat")
     with col_f_marca_bat:
@@ -735,9 +748,37 @@ elif opcion == "🔋 Cambio de baterías":
 elif opcion == "🤝 Alquileres":
     st.markdown("## ⏱️ Alquiler de UPS")
     
-    busqueda_alq = st.text_input("🔎 Buscar alquiler", placeholder="Cotización o tienda...")
-    df_alq = st.session_state.df_Alquiler
+    df_alq = st.session_state.df_Alquiler.copy()
+    col_alq_f = [c for c in df_alq.columns if "FECHA" in str(c).upper()]
+    
+    anos_alq = ["Todos"]
+    if col_alq_f:
+        anos_encontrados_alq = pd.to_datetime(df_alq[col_alq_f[0]], errors='coerce').dt.year.dropna().unique()
+        anos_alq.extend(sorted([int(a) for a in anos_encontrados_alq], reverse=True))
+    else:
+        anos_alq.extend([2025, 2026])
+
+    cols_marca_alq = [c for c in df_alq.columns if str(c).upper().strip() == 'MARCA']
+    marcas_alq = ["Todas"]
+    if cols_marca_alq:
+        marcas_alq.extend(sorted(df_alq[cols_marca_alq[0]].dropna().astype(str).unique()))
+
+    col_f_ano_alq, col_f_marca_alq, col_busqueda_alq = st.columns([1.2, 1.5, 2.5])
+    with col_f_ano_alq:
+        anio_sel_alq = st.selectbox("📅 Filtrar Año:", options=anos_alq, key="filtro_anio_alq")
+    with col_f_marca_alq:
+        marca_sel_alq = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_alq, key="filtro_marca_alq")
+    with col_busqueda_alq:
+        busqueda_alq = st.text_input("🔎 Buscar alquiler", placeholder="Cotización o tienda...")
+
     df_alq_filtrado = df_alq.copy()
+
+    if anio_sel_alq != "Todos" and col_alq_f:
+        anos_fila_alq = pd.to_datetime(df_alq_filtrado[col_alq_f[0]], errors='coerce').dt.year
+        df_alq_filtrado = df_alq_filtrado[anos_fila_alq == anio_sel_alq]
+
+    if marca_sel_alq != "Todas" and cols_marca_alq:
+        df_alq_filtrado = df_alq_filtrado[df_alq_filtrado[cols_marca_alq[0]].astype(str) == marca_sel_alq]
 
     if busqueda_alq.strip():
         mask = df_alq_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_alq, case=False, na=False)).any(axis=1)
