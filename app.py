@@ -7,12 +7,6 @@ import os
 import glob
 import plotly.express as px
 
-# Importaciones de ReportLab para generación de PDFs
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-
 # Configuración inicial de la página
 st.set_page_config(
     page_title="Sistema de Gestión TI - UPS",
@@ -193,43 +187,44 @@ def aplicar_estilos_corporativos():
             line-height: 1.1;
         }}
 
+        /* CONFIGURACIÓN AMPLIADA DEL MENÚ LATERAL */
         section[data-testid="stSidebar"] {{
             background-color: {BG_CARD} !important;
             border-right: 1px solid {BORDER_COLOR};
-            min-width: 220px !important;
-            max-width: 220px !important;
-            width: 220px !important;
+            min-width: 275px !important;
+            max-width: 275px !important;
+            width: 275px !important;
         }}
         section[data-testid="stSidebar"] > div:first-child {{
-            width: 220px !important;
-            padding: 0.8rem 0.4rem !important;
+            width: 275px !important;
+            padding: 1.2rem 0.8rem !important;
         }}
         section[data-testid="stSidebar"] * {{
             color: {TEXT_PRIMARY} !important;
         }}
         
         section[data-testid="stSidebar"] h1 {{
-            font-size: 1rem !important;
+            font-size: 1.15rem !important;
             font-weight: 800 !important;
-            margin-bottom: 0.1rem !important;
+            margin-bottom: 0.2rem !important;
         }}
         
         section[data-testid="stSidebar"] .stCaption p {{
-            font-size: 0.75rem !important;
+            font-size: 0.85rem !important;
             color: {TEXT_SECONDARY} !important;
-            margin-bottom: 0.5rem !important;
+            margin-bottom: 0.8rem !important;
         }}
 
         section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] {{
-            gap: 2px !important;
+            gap: 6px !important;
         }}
         
         section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {{
             background-color: transparent !important;
             border: 1px solid transparent !important;
-            border-radius: 6px !important;
-            padding: 4px 6px !important;
-            margin-bottom: 1px !important;
+            border-radius: 8px !important;
+            padding: 8px 10px !important;
+            margin-bottom: 2px !important;
         }}
         
         section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {{
@@ -243,7 +238,7 @@ def aplicar_estilos_corporativos():
         }}
 
         section[data-testid="stSidebar"] .stRadio label p {{
-            font-size: 0.8rem !important;
+            font-size: 0.95rem !important;
             font-weight: 600 !important;
         }}
         </style>
@@ -461,13 +456,11 @@ if opcion == "📊 Panel de control":
 
     st.markdown("---")
 
-    # Layout de Gráficos y Panel lateral de Resumen Ejecutivo
     col_graficos, col_resumen = st.columns([2.2, 1])
 
     with col_graficos:
         st.markdown("### 📅 Comparativo por año")
         
-        # Gráfico Baterías
         st.markdown("##### 🔋 Cambios de baterías")
         df_chart_bat = pd.DataFrame({
             "Año": [str(anio_actual - 1), str(anio_actual)],
@@ -490,7 +483,6 @@ if opcion == "📊 Panel de control":
         fig_bat.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
         st.plotly_chart(fig_bat, use_container_width=True)
 
-        # Gráfico Mantenimientos
         st.markdown("##### 🛠️ Mantenimientos")
         val_mant_anterior = val_mant_total - val_mant_actual
         df_chart_mant = pd.DataFrame({
@@ -580,8 +572,16 @@ elif opcion == "🛠️ Mantenimientos":
     
     df_mant = st.session_state.df_Mantenimiento.copy()
     
-    anos_disponibles = ["Todos"]
+    # Limpieza: Asegurar que solo salgan filas con tiendas válidas e intervenciones reales
+    cols_tienda_mant = [c for c in df_mant.columns if 'TIENDA' in str(c).upper() or 'LOCAL' in str(c).upper()]
     col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
+    
+    if cols_tienda_mant:
+        df_mant = df_mant.dropna(subset=[cols_tienda_mant[0]])
+        df_mant = df_mant[~df_mant[cols_tienda_mant[0]].astype(str).str.contains('SUB-TOTAL|TOTAL|SUMA', case=False, na=False)]
+        df_mant = df_mant[df_mant[cols_tienda_mant[0]].astype(str).str.strip() != ""]
+    
+    anos_disponibles = ["Todos"]
     if col_mant_f:
         anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year.dropna().unique()
         anos_disponibles.extend(sorted([int(a) for a in anos_encontrados], reverse=True))
@@ -624,7 +624,15 @@ elif opcion == "🛠️ Mantenimientos":
 elif opcion == "🔋 Cambio de baterías":
     st.markdown("## 🔋 Cambios de Baterías")
     
-    df_bat = st.session_state.df_Baterias
+    df_bat = st.session_state.df_Baterias.copy()
+    
+    # Limpieza: Excluir filas vacías o subtotales para mostrar solo tiendas con cambios de batería reales
+    cols_tienda_bat = [c for c in df_bat.columns if 'TIENDA' in str(c).upper() or 'LOCAL' in str(c).upper() or 'ITEM' in str(c).upper()]
+    if cols_tienda_bat:
+        df_bat = df_bat.dropna(subset=[cols_tienda_bat[0]])
+        df_bat = df_bat[~df_bat[cols_tienda_bat[0]].astype(str).str.contains('SUB-TOTAL|TOTAL|SUMA', case=False, na=False)]
+        df_bat = df_bat[df_bat[cols_tienda_bat[0]].astype(str).str.strip() != ""]
+
     df_bat_filtrado = df_bat.copy()
 
     anos_bat_opciones = ["Todos"]
@@ -648,7 +656,7 @@ elif opcion == "🔋 Cambio de baterías":
         cols_a_mantener = []
         for col in df_bat.columns:
             c_upper = str(col).upper()
-            if any(k in c_upper for k in ['TIENDA', 'ITEM', 'MARCA', 'MODELO', 'SERIE', 'RAZON']):
+            if any(k in c_upper for k in ['TIENDA', 'ITEM', 'MARCA', 'MODELO', 'SERIE', 'RAZON', 'LOCAL']):
                 cols_a_mantener.append(col)
             elif str(anio_sel_bat) in str(col) or str(anio_sel_bat)[-2:] in str(col):
                 cols_a_mantener.append(col)
