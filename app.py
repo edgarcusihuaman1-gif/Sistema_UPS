@@ -305,10 +305,9 @@ def limpiar_dataframe_mantenimiento(df):
     for col in df.columns:
         if "FECHA" in str(col).upper():
             fechas_parsed = pd.to_datetime(df[col], errors='coerce')
-            df[col] = fechas_parsed.dt.strftime('%d/%m/%Y').fillna(df[col])
-            # Si quedo solo hora por defecto o formato extraño, limpiar
-            df[col] = df[col].astype(str).replace(["NaT", "nan", "None"], "")
-            df[col] = df[col].apply(lambda x: "" if x.startswith("00:00:00") else x)
+            df[col] = fechas_parsed.dt.strftime('%d/%m/%Y').fillna(df[col].astype(str))
+            df[col] = df[col].str.replace("00:00:00", "").str.strip()
+            df[col] = df[col].replace(["NaT", "nan", "None", ""], pd.NA)
             
     return df
 
@@ -605,12 +604,9 @@ elif opcion == "🛠️ Mantenimientos":
 
     df_mant_filtrado = df_mant.copy()
 
-    # FILTRO ESTRICTO: Mostrar solo filas con fecha real y del año seleccionado
     if anio_seleccionado != "Todos" and col_mant_f:
         anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce', format='%d/%m/%Y').dt.year
-        df_mant_filtrado = df_mant_filtrado[(anos_fila == anio_seleccionado) & (df_mant_filtrado[col_mant_f[0]].notna()) & (df_mant_filtrado[col_mant_f[0]] != "")]
-    elif col_mant_f:
-        df_mant_filtrado = df_mant_filtrado[(df_mant_filtrado[col_mant_f[0]].notna()) & (df_mant_filtrado[col_mant_f[0]] != "")]
+        df_mant_filtrado = df_mant_filtrado[anos_fila == anio_seleccionado]
 
     if busqueda_tienda.strip():
         mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
@@ -661,7 +657,6 @@ elif opcion == "🔋 Cambio de baterías":
     if anio_sel_bat != "Todos":
         cols_a_mantener = []
         col_cant_ano = None
-        col_fecha_ano = None
         
         for col in df_bat.columns:
             c_upper = str(col).upper()
@@ -671,17 +666,12 @@ elif opcion == "🔋 Cambio de baterías":
                 cols_a_mantener.append(col)
                 if 'CANT' in c_upper or 'CANTDAD' in c_upper:
                     col_cant_ano = col
-                if 'FECHA' in c_upper:
-                    col_fecha_ano = col
 
         if cols_a_mantener:
             df_bat_filtrado = df_bat[cols_a_mantener].copy()
-            
             if col_cant_ano:
                 df_bat_filtrado[col_cant_ano] = pd.to_numeric(df_bat_filtrado[col_cant_ano], errors='coerce').fillna(0)
                 df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[col_cant_ano] > 0]
-            elif col_fecha_ano:
-                df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[col_fecha_ano].notna()]
 
     if busqueda_bat.strip():
         mask = df_bat_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_bat, case=False, na=False)).any(axis=1)
