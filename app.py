@@ -571,15 +571,7 @@ elif opcion == "🛠️ Mantenimientos":
     st.markdown("## 🛠️ Mantenimiento de UPS")
     
     df_mant = st.session_state.df_Mantenimiento.copy()
-    
-    # Limpieza: Asegurar que solo salgan filas con tiendas válidas e intervenciones reales
-    cols_tienda_mant = [c for c in df_mant.columns if 'TIENDA' in str(c).upper() or 'LOCAL' in str(c).upper()]
     col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
-    
-    if cols_tienda_mant:
-        df_mant = df_mant.dropna(subset=[cols_tienda_mant[0]])
-        df_mant = df_mant[~df_mant[cols_tienda_mant[0]].astype(str).str.contains('SUB-TOTAL|TOTAL|SUMA', case=False, na=False)]
-        df_mant = df_mant[df_mant[cols_tienda_mant[0]].astype(str).str.strip() != ""]
     
     anos_disponibles = ["Todos"]
     if col_mant_f:
@@ -594,9 +586,13 @@ elif opcion == "🛠️ Mantenimientos":
 
     df_mant_filtrado = df_mant.copy()
 
+    # FILTRO ESTRICTO: Mostrar solo filas donde SÍ se realizó mantenimiento en el año seleccionado (fecha no vacía)
     if anio_seleccionado != "Todos" and col_mant_f:
         anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce').dt.year
-        df_mant_filtrado = df_mant_filtrado[anos_fila == anio_seleccionado]
+        df_mant_filtrado = df_mant_filtrado[(anos_fila == anio_seleccionado) & (df_mant_filtrado[col_mant_f[0]].notna())]
+    elif col_mant_f:
+        # Si está en "Todos", mostrar solo registros que tengan fecha de mantenimiento registrada
+        df_mant_filtrado = df_mant_filtrado[df_mant_filtrado[col_mant_f[0]].notna()]
 
     if busqueda_tienda.strip():
         mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
@@ -625,14 +621,6 @@ elif opcion == "🔋 Cambio de baterías":
     st.markdown("## 🔋 Cambios de Baterías")
     
     df_bat = st.session_state.df_Baterias.copy()
-    
-    # Limpieza: Excluir filas vacías o subtotales para mostrar solo tiendas con cambios de batería reales
-    cols_tienda_bat = [c for c in df_bat.columns if 'TIENDA' in str(c).upper() or 'LOCAL' in str(c).upper() or 'ITEM' in str(c).upper()]
-    if cols_tienda_bat:
-        df_bat = df_bat.dropna(subset=[cols_tienda_bat[0]])
-        df_bat = df_bat[~df_bat[cols_tienda_bat[0]].astype(str).str.contains('SUB-TOTAL|TOTAL|SUMA', case=False, na=False)]
-        df_bat = df_bat[df_bat[cols_tienda_bat[0]].astype(str).str.strip() != ""]
-
     df_bat_filtrado = df_bat.copy()
 
     anos_bat_opciones = ["Todos"]
@@ -652,16 +640,32 @@ elif opcion == "🔋 Cambio de baterías":
     with col_busqueda_bat:
         busqueda_bat = st.text_input("🔍 Buscar", placeholder="Tienda, serie, modelo...", key="busqueda_baterias_txt")
 
+    # FILTRO ESTRICTO: Mostrar solo filas donde SÍ hubo cambio de batería (Cantidad > 0 o Fecha no vacía) en el año seleccionado
     if anio_sel_bat != "Todos":
         cols_a_mantener = []
+        col_cant_ano = None
+        col_fecha_ano = None
+        
         for col in df_bat.columns:
             c_upper = str(col).upper()
-            if any(k in c_upper for k in ['TIENDA', 'ITEM', 'MARCA', 'MODELO', 'SERIE', 'RAZON', 'LOCAL']):
+            if any(k in c_upper for k in ['TIENDA', 'ITEM', 'MARCA', 'MODELO', 'SERIE', 'RAZON', 'LOCAL', 'ZONA']):
                 cols_a_mantener.append(col)
             elif str(anio_sel_bat) in str(col) or str(anio_sel_bat)[-2:] in str(col):
                 cols_a_mantener.append(col)
+                if 'CANT' in c_upper or 'CANTIDAD' in c_upper:
+                    col_cant_ano = col
+                if 'FECHA' in c_upper:
+                    col_fecha_ano = col
+
         if cols_a_mantener:
-            df_bat_filtrado = df_bat[cols_a_mantener]
+            df_bat_filtrado = df_bat[cols_a_mantener].copy()
+            
+            # Limpiar filas donde no se hizo el trabajo en ese año
+            if col_cant_ano:
+                df_bat_filtrado[col_cant_ano] = pd.to_numeric(df_bat_filtrado[col_cant_ano], errors='coerce').fillna(0)
+                df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[col_cant_ano] > 0]
+            elif col_fecha_ano:
+                df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[col_fecha_ano].notna()]
 
     if busqueda_bat.strip():
         mask = df_bat_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_bat, case=False, na=False)).any(axis=1)
