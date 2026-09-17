@@ -187,7 +187,6 @@ def aplicar_estilos_corporativos():
             line-height: 1.1;
         }}
 
-        /* CONFIGURACIÓN AMPLIADA DEL MENÚ LATERAL */
         section[data-testid="stSidebar"] {{
             background-color: {BG_CARD} !important;
             border-right: 1px solid {BORDER_COLOR};
@@ -295,18 +294,38 @@ if not st.session_state.autenticado:
     login()
     st.stop()
 
+def limpiar_dataframe_mantenimiento(df):
+    if df.empty:
+        return df
+    # Eliminar columnas vacías o que comiencen con Unnamed
+    cols_validas = [c for c in df.columns if not str(c).startswith("Unnamed")]
+    df = df[cols_validas].copy()
+    
+    # Formatear columnas de fecha de forma profesional (DD/MM/YYYY)
+    for col in df.columns:
+        if "FECHA" in str(col).upper():
+            fechas_parsed = pd.to_datetime(df[col], errors='coerce')
+            df[col] = fechas_parsed.dt.strftime('%d/%m/%Y').fillna(df[col])
+            # Si quedo solo hora por defecto o formato extraño, limpiar
+            df[col] = df[col].astype(str).replace(["NaT", "nan", "None"], "")
+            df[col] = df[col].apply(lambda x: "" if x.startswith("00:00:00") else x)
+            
+    return df
+
 def cargar_excel(clave):
     ruta = buscar_archivo_excel(PATRONES[clave])
     if ruta and os.path.exists(ruta):
         try:
             if clave == "Inventario":
-                return pd.read_excel(ruta, sheet_name='UPS Inventario')
+                df = pd.read_excel(ruta, sheet_name='UPS Inventario')
             elif clave == "Mantenimiento":
-                return pd.read_excel(ruta, header=1)
+                df = pd.read_excel(ruta, header=1)
+                df = limpiar_dataframe_mantenimiento(df)
             elif clave == "Baterias":
-                return pd.read_excel(ruta, header=0)
+                df = pd.read_excel(ruta, header=0)
             else:
-                return pd.read_excel(ruta)
+                df = pd.read_excel(ruta)
+            return df
         except Exception:
             return pd.DataFrame()
     return pd.DataFrame()
@@ -402,7 +421,7 @@ if opcion == "📊 Panel de control":
         col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
         if col_mant_f:
             val_mant_total = int(df_mant[col_mant_f[0]].notna().sum())
-            anos_col = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year
+            anos_col = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce', format='%d/%m/%Y').dt.year
             val_mant_actual = int((anos_col == anio_actual).sum())
         else:
             val_mant_total = len(df_mant)
@@ -575,7 +594,7 @@ elif opcion == "🛠️ Mantenimientos":
     
     anos_disponibles = ["Todos"]
     if col_mant_f:
-        anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year.dropna().unique()
+        anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce', format='%d/%m/%Y').dt.year.dropna().unique()
         anos_disponibles.extend(sorted([int(a) for a in anos_encontrados], reverse=True))
 
     col_filtro_ano, col_busqueda_t = st.columns([1.5, 2.5])
@@ -586,13 +605,12 @@ elif opcion == "🛠️ Mantenimientos":
 
     df_mant_filtrado = df_mant.copy()
 
-    # FILTRO ESTRICTO: Mostrar solo filas donde SÍ se realizó mantenimiento en el año seleccionado (fecha no vacía)
+    # FILTRO ESTRICTO: Mostrar solo filas con fecha real y del año seleccionado
     if anio_seleccionado != "Todos" and col_mant_f:
-        anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce').dt.year
-        df_mant_filtrado = df_mant_filtrado[(anos_fila == anio_seleccionado) & (df_mant_filtrado[col_mant_f[0]].notna())]
+        anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce', format='%d/%m/%Y').dt.year
+        df_mant_filtrado = df_mant_filtrado[(anos_fila == anio_seleccionado) & (df_mant_filtrado[col_mant_f[0]].notna()) & (df_mant_filtrado[col_mant_f[0]] != "")]
     elif col_mant_f:
-        # Si está en "Todos", mostrar solo registros que tengan fecha de mantenimiento registrada
-        df_mant_filtrado = df_mant_filtrado[df_mant_filtrado[col_mant_f[0]].notna()]
+        df_mant_filtrado = df_mant_filtrado[(df_mant_filtrado[col_mant_f[0]].notna()) & (df_mant_filtrado[col_mant_f[0]] != "")]
 
     if busqueda_tienda.strip():
         mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
@@ -640,7 +658,6 @@ elif opcion == "🔋 Cambio de baterías":
     with col_busqueda_bat:
         busqueda_bat = st.text_input("🔍 Buscar", placeholder="Tienda, serie, modelo...", key="busqueda_baterias_txt")
 
-    # FILTRO ESTRICTO: Mostrar solo filas donde SÍ hubo cambio de batería (Cantidad > 0 o Fecha no vacía) en el año seleccionado
     if anio_sel_bat != "Todos":
         cols_a_mantener = []
         col_cant_ano = None
@@ -652,7 +669,7 @@ elif opcion == "🔋 Cambio de baterías":
                 cols_a_mantener.append(col)
             elif str(anio_sel_bat) in str(col) or str(anio_sel_bat)[-2:] in str(col):
                 cols_a_mantener.append(col)
-                if 'CANT' in c_upper or 'CANTIDAD' in c_upper:
+                if 'CANT' in c_upper or 'CANTDAD' in c_upper:
                     col_cant_ano = col
                 if 'FECHA' in c_upper:
                     col_fecha_ano = col
@@ -660,7 +677,6 @@ elif opcion == "🔋 Cambio de baterías":
         if cols_a_mantener:
             df_bat_filtrado = df_bat[cols_a_mantener].copy()
             
-            # Limpiar filas donde no se hizo el trabajo en ese año
             if col_cant_ano:
                 df_bat_filtrado[col_cant_ano] = pd.to_numeric(df_bat_filtrado[col_cant_ano], errors='coerce').fillna(0)
                 df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[col_cant_ano] > 0]
