@@ -643,6 +643,14 @@ elif opcion == "🛠️ Mantenimientos":
         mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
         df_mant_filtrado = df_mant_filtrado[mask]
 
+    # Formatear la columna de MANT CARG (o cualquier columna que contenga CARG o % o valores decimales de porcentaje) a formato porcentaje visual
+    cols_porcentaje = [c for c in df_mant_filtrado.columns if 'CARG' in str(c).upper() or 'PORC' in str(c).upper()]
+    df_mant_display = df_mant_filtrado.copy()
+    for col_p in cols_porcentaje:
+        df_mant_display[col_p] = pd.to_numeric(df_mant_display[col_p], errors='coerce').apply(
+            lambda x: f"{x * 100:.1f}%" if pd.notnull(x) else ""
+        )
+
     cant_mantenimientos = len(df_mant_filtrado)
     
     c_kpi, _ = st.columns([1, 2])
@@ -650,14 +658,19 @@ elif opcion == "🛠️ Mantenimientos":
         render_kpi("🛠️", f"Mantenimientos ({anio_seleccionado})", f"{cant_mantenimientos:,}")
         
     if st.session_state.rol_actual == "admin":
-        df_edit_mant = st.data_editor(df_mant_filtrado, num_rows="dynamic", use_container_width=True, key="ed_mant")
+        df_edit_mant = st.data_editor(df_mant_display, num_rows="dynamic", use_container_width=True, key="ed_mant")
+        # Al guardar, si se editó como texto porcentual, intentamos revertirlo a decimal numérico si es necesario o conservar valores
         if st.button("💾 Guardar Cambios en Mantenimiento"):
-            st.session_state.df_Mantenimiento = df_edit_mant
-            guardar_excel(df_edit_mant, "Mantenimiento")
+            df_para_guardar = df_edit_mant.copy()
+            for col_p in cols_porcentaje:
+                df_para_guardar[col_p] = df_para_guardar[col_p].astype(str).str.replace('%', '', regex=False)
+                df_para_guardar[col_p] = pd.to_numeric(df_para_guardar[col_p], errors='coerce') / 100.0
+            st.session_state.df_Mantenimiento = df_para_guardar
+            guardar_excel(df_para_guardar, "Mantenimiento")
             st.success("✅ Archivo de Mantenimiento guardado.")
             st.rerun()
     else:
-        st.dataframe(df_mant_filtrado, use_container_width=True, hide_index=True)
+        st.dataframe(df_mant_display, use_container_width=True, hide_index=True)
 
 # -------------------------------------------------------------
 # CAMBIO BATERÍAS
