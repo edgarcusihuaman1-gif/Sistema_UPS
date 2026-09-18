@@ -557,13 +557,11 @@ elif opcion == "📦 Inventario UPS":
     
     df_inv = st.session_state.df_Inventario
     
-    # Obtener marcas disponibles
     cols_marca_inv = [c for c in df_inv.columns if str(c).upper().strip() == 'MARCA']
     marcas_inv = ["Todas"]
     if cols_marca_inv:
         marcas_inv.extend(sorted(df_inv[cols_marca_inv[0]].dropna().astype(str).unique()))
 
-    # Simular o extraer años si existen columnas de fecha en inventario
     col_inv_f = [c for c in df_inv.columns if "FECHA" in str(c).upper()]
     anos_inv = ["Todos"]
     if col_inv_f:
@@ -749,13 +747,19 @@ elif opcion == "🤝 Alquileres":
     st.markdown("## ⏱️ Alquiler de UPS")
     
     df_alq = st.session_state.df_Alquiler.copy()
+    
+    col_anio_exacta = [c for c in df_alq.columns if str(c).upper().strip() == 'AÑO']
     col_alq_f = [c for c in df_alq.columns if "FECHA" in str(c).upper()]
     
     anos_alq = ["Todos"]
-    if col_alq_f:
+    if col_anio_exacta:
+        anos_encontrados_alq = df_alq[col_anio_exacta[0]].dropna().unique()
+        anos_alq.extend(sorted([int(a) for a in anos_encontrados_alq if str(a).isdigit()], reverse=True))
+    elif col_alq_f:
         anos_encontrados_alq = pd.to_datetime(df_alq[col_alq_f[0]], errors='coerce').dt.year.dropna().unique()
         anos_alq.extend(sorted([int(a) for a in anos_encontrados_alq], reverse=True))
-    else:
+    
+    if len(anos_alq) == 1:
         anos_alq.extend([2025, 2026])
 
     cols_marca_alq = [c for c in df_alq.columns if str(c).upper().strip() == 'MARCA']
@@ -769,13 +773,16 @@ elif opcion == "🤝 Alquileres":
     with col_f_marca_alq:
         marca_sel_alq = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_alq, key="filtro_marca_alq")
     with col_busqueda_alq:
-        busqueda_alq = st.text_input("🔎 Buscar alquiler", placeholder="Cotización o tienda...")
+        busqueda_alq = st.text_input("🔎 Buscar alquiler", placeholder="Cotización, tienda, evento...")
 
     df_alq_filtrado = df_alq.copy()
 
-    if anio_sel_alq != "Todos" and col_alq_f:
-        anos_fila_alq = pd.to_datetime(df_alq_filtrado[col_alq_f[0]], errors='coerce').dt.year
-        df_alq_filtrado = df_alq_filtrado[anos_fila_alq == anio_sel_alq]
+    if anio_sel_alq != "Todos":
+        if col_anio_exacta:
+            df_alq_filtrado = df_alq_filtrado[df_alq_filtrado[col_anio_exacta[0]].astype(str) == str(anio_sel_alq)]
+        elif col_alq_f:
+            anos_fila_alq = pd.to_datetime(df_alq_filtrado[col_alq_f[0]], errors='coerce').dt.year
+            df_alq_filtrado = df_alq_filtrado[anos_fila_alq == anio_sel_alq]
 
     if marca_sel_alq != "Todas" and cols_marca_alq:
         df_alq_filtrado = df_alq_filtrado[df_alq_filtrado[cols_marca_alq[0]].astype(str) == marca_sel_alq]
