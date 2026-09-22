@@ -171,11 +171,24 @@ def aplicar_estilos_corporativos():
             padding: 12px 16px;
             margin-bottom: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            height: 85px;
+            height: 82px;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }}
+        
+        .kpi-card-tall {{
+            background-color: {BG_CARD};
+            border: 1px solid {BORDER_COLOR};
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            height: 178px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }}
+
         .kpi-header {{
             font-size: 0.72rem;
             font-weight: 800;
@@ -462,58 +475,72 @@ if opcion == "📊 Panel de control":
         if col_costo:
             val_ingresos_alq = float(pd.to_numeric(df_alq_real[col_costo[0]], errors='coerce').sum())
 
-    # Fila superior de tarjetas KPI (3 columnas principales y perfectamente alineadas)
+    # Fila superior de tarjetas KPI equilibradas en 3 columnas exactas
     k1, k2, k3 = st.columns(3)
     
     with k1: 
-        render_kpi("📦", "UPS EN INVENTARIO", f"{val_inv:,}")
+        # Columna 1: Inventario arriba y Mantenimientos abajo con altura unificada exacta
+        st.markdown(f"""
+        <div class="kpi-card" style="margin-bottom: 8px;">
+            <div class="kpi-header">📦 UPS EN INVENTARIO</div>
+            <div class="kpi-value">{val_inv:,}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+        <div class="kpi-card">
+            <div class="kpi-header">🛠️ MANTENIMIENTOS {anio_actual}</div>
+            <div class="kpi-value">{val_mant_actual:,}</div>
+        </div>
+        """, unsafe_allow_html=True)
         
     with k2: 
-        # Tarjeta unificada de Baterías
+        # Columna 2: Resumen de Baterías unificado con altura perfecta
         html_baterias_unificado = f"""
-        <div class="kpi-card">
+        <div class="kpi-card-tall">
             <div class="kpi-header">🔋 RESUMEN DE BATERÍAS</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0;">
                 <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">CAMBIADAS (TOTAL)</span>
-                    <span style="font-size: 1.2rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_bat_total:,}</span>
+                    <span style="font-size: 0.7rem; color: {TEXT_SECONDARY}; display: block;">CAMBIADAS (TOTAL)</span>
+                    <span style="font-size: 1.5rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_bat_total:,}</span>
                 </div>
                 <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">AÑO {anio_actual}</span>
-                    <span style="font-size: 1.2rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">{val_bat_actual:,}</span>
+                    <span style="font-size: 0.7rem; color: {TEXT_SECONDARY}; display: block;">AÑO {anio_actual}</span>
+                    <span style="font-size: 1.5rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">{val_bat_actual:,}</span>
                 </div>
+            </div>
+            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; border-top: 1px solid {BORDER_COLOR}; pt-2;">
+                Control de sustituciones e historial anual.
             </div>
         </div>
         """
         st.markdown(html_baterias_unificado, unsafe_allow_html=True)
         
     with k3: 
-        # Tarjeta unificada de Alquileres
+        # Columna 3: Resumen de Alquileres unificado con altura perfecta
         html_alquileres_unificado = f"""
-        <div class="kpi-card">
+        <div class="kpi-card-tall">
             <div class="kpi-header">🤝 RESUMEN DE ALQUILERES</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0;">
                 <div>
                     <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">CANTIDAD</span>
-                    <span style="font-size: 1.1rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_alq_total}</span>
+                    <span style="font-size: 1.2rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_alq_total}</span>
                 </div>
                 <div>
                     <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">DÍAS</span>
-                    <span style="font-size: 1.1rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_dias_alq}</span>
+                    <span style="font-size: 1.2rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_dias_alq}</span>
                 </div>
                 <div>
                     <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">INGRESOS</span>
-                    <span style="font-size: 1.1rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</span>
+                    <span style="font-size: 1.2rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</span>
                 </div>
+            </div>
+            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; border-top: 1px solid {BORDER_COLOR}; pt-2;">
+                Monto acumulado y días operativos de alquiler.
             </div>
         </div>
         """
         st.markdown(html_alquileres_unificado, unsafe_allow_html=True)
-
-    # Fila inferior de tarjetas secundarias (Mantenimientos)
-    k4, _ = st.columns([1, 2])
-    with k4: 
-        render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
 
     st.markdown("---")
 
@@ -913,7 +940,7 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
                     col_name_2 = cols[i + 1]
                     nuevos_datos[col_name_2] = st.text_input(f"{col_name_2}")
 
-        submitted = st.form_submit_button("➕ Agregar y Guardar en Excel", use_container_width=True)
+        submitted = st.form_submit_button("➕ Agregar y Guardar in Excel", use_container_width=True)
         if submitted:
             nueva_fila = pd.DataFrame([nuevos_datos])
             df_actualizado = pd.concat([df_actual, nueva_fila], ignore_index=True)
