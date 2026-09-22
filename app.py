@@ -67,6 +67,18 @@ def aplicar_estilos_corporativos():
             background-color: {INPUT_BG} !important;
         }}
 
+        /* Corrección completa para el editor de tablas (st.data_editor) y celdas activas */
+        div[data-testid="stDataFrame"] input, 
+        div[data-testid="stDataEditor"] input,
+        div[data-testid="stDataFrame"] textarea, 
+        div[data-testid="stDataEditor"] textarea,
+        div[role="textbox"], div[role="combobox"], 
+        .glideDataEditor textarea, .glideDataEditor input {{
+            color: #FFFFFF !important;
+            background-color: #21262D !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+        }}
+
         div[data-baseweb="select"] > div, 
         div[data-baseweb="input"] > div, 
         div[data-baseweb="base-input"],
@@ -479,7 +491,6 @@ if opcion == "📊 Panel de control":
     k1, k2, k3 = st.columns(3)
     
     with k1: 
-        # Columna 1: Inventario arriba y Mantenimientos abajo con altura unificada exacta
         st.markdown(f"""
         <div class="kpi-card" style="margin-bottom: 8px;">
             <div class="kpi-header">📦 UPS EN INVENTARIO</div>
@@ -495,7 +506,6 @@ if opcion == "📊 Panel de control":
         """, unsafe_allow_html=True)
         
     with k2: 
-        # Columna 2: Resumen de Baterías unificado con altura perfecta
         html_baterias_unificado = f"""
         <div class="kpi-card-tall">
             <div class="kpi-header">🔋 RESUMEN DE BATERÍAS</div>
@@ -517,7 +527,6 @@ if opcion == "📊 Panel de control":
         st.markdown(html_baterias_unificado, unsafe_allow_html=True)
         
     with k3: 
-        # Columna 3: Resumen de Alquileres unificado con altura perfecta
         html_alquileres_unificado = f"""
         <div class="kpi-card-tall">
             <div class="kpi-header">🤝 RESUMEN DE ALQUILERES</div>
@@ -940,7 +949,7 @@ elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
                     col_name_2 = cols[i + 1]
                     nuevos_datos[col_name_2] = st.text_input(f"{col_name_2}")
 
-        submitted = st.form_submit_button("➕ Agregar y Guardar in Excel", use_container_width=True)
+        submitted = st.form_submit_button("➕ Agregar y Guardar en Excel", use_container_width=True)
         if submitted:
             nueva_fila = pd.DataFrame([nuevos_datos])
             df_actualizado = pd.concat([df_actual, nueva_fila], ignore_index=True)
