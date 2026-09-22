@@ -67,16 +67,17 @@ def aplicar_estilos_corporativos():
             background-color: {INPUT_BG} !important;
         }}
 
-        /* Corrección completa para el editor de tablas (st.data_editor) y celdas activas */
-        div[data-testid="stDataFrame"] input, 
+        /* SOLUCIÓN DEFINITIVA PARA LA EDICIÓN DE CELDAS (st.data_editor) */
         div[data-testid="stDataEditor"] input,
-        div[data-testid="stDataFrame"] textarea, 
         div[data-testid="stDataEditor"] textarea,
-        div[role="textbox"], div[role="combobox"], 
-        .glideDataEditor textarea, .glideDataEditor input {{
-            color: #FFFFFF !important;
-            background-color: #21262D !important;
-            -webkit-text-fill-color: #FFFFFF !important;
+        div[data-testid="stDataFrame"] input,
+        div[data-testid="stDataFrame"] textarea,
+        .dvn-scroller input, .dvn-scroller textarea,
+        div[role="dialog"] input, div[role="dialog"] textarea {{
+            color: #000000 !important;
+            background-color: #FFFFFF !important;
+            -webkit-text-fill-color: #000000 !important;
+            font-weight: 700 !important;
         }}
 
         div[data-baseweb="select"] > div, 
@@ -487,7 +488,6 @@ if opcion == "📊 Panel de control":
         if col_costo:
             val_ingresos_alq = float(pd.to_numeric(df_alq_real[col_costo[0]], errors='coerce').sum())
 
-    # Fila superior de tarjetas KPI equilibradas en 3 columnas exactas
     k1, k2, k3 = st.columns(3)
     
     with k1: 
