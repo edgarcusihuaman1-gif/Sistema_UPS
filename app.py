@@ -458,17 +458,16 @@ if opcion == "📊 Panel de control":
         if col_costo:
             val_ingresos_alq = float(pd.to_numeric(df_alq_real[col_costo[0]], errors='coerce').sum())
 
-    k1, k2, k3, k4 = st.columns(4)
+    k1, k2, k3 = st.columns(3)
     with k1: render_kpi("📦", "UPS EN INVENTARIO", f"{val_inv:,}")
-    with k2: render_kpi("🛠️", "MANTENIMIENTOS", f"{val_mant_total:,}")
-    with k3: render_kpi("🔋", "BATERÍAS CAMBIADAS", f"{val_bat_total:,}")
-    with k4: render_kpi("⏱️", "ALQUILERES", f"{val_alq_total:,}")
+    with k2: render_kpi("🔋", "BATERÍAS CAMBIADAS", f"{val_bat_total:,}")
+    with k3: render_kpi("⏱️", "ALQUILERES", f"{val_alq_total:,}")
 
-    k5, k6, k7, k8 = st.columns(4)
-    with k5: render_kpi("📅", "DÍAS ALQUILADOS", f"{val_dias_alq:,}")
-    with k6: render_kpi("💰", "INGRESOS POR ALQUILER", f"S/ {val_ingresos_alq:,.2f}")
-    with k7: render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
-    with k8: render_kpi("🔋", f"BATERÍAS {anio_actual}", f"{val_bat_actual:,}")
+    k4, k5, k6, k7 = st.columns(4)
+    with k4: render_kpi("📅", "DÍAS ALQUILADOS", f"{val_dias_alq:,}")
+    with k5: render_kpi("💰", "INGRESOS POR ALQUILER", f"S/ {val_ingresos_alq:,.2f}")
+    with k6: render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
+    with k7: render_kpi("🔋", f"BATERÍAS {anio_actual}", f"{val_bat_actual:,}")
 
     st.markdown("---")
 
@@ -643,7 +642,6 @@ elif opcion == "🛠️ Mantenimientos":
         mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
         df_mant_filtrado = df_mant_filtrado[mask]
 
-    # Formatear la columna de MANT CARG (o cualquier columna que contenga CARG o % o valores decimales de porcentaje) a formato porcentaje visual
     cols_porcentaje = [c for c in df_mant_filtrado.columns if 'CARG' in str(c).upper() or 'PORC' in str(c).upper()]
     df_mant_display = df_mant_filtrado.copy()
     for col_p in cols_porcentaje:
@@ -659,7 +657,6 @@ elif opcion == "🛠️ Mantenimientos":
         
     if st.session_state.rol_actual == "admin":
         df_edit_mant = st.data_editor(df_mant_display, num_rows="dynamic", use_container_width=True, key="ed_mant")
-        # Al guardar, si se editó como texto porcentual, intentamos revertirlo a decimal numérico si es necesario o conservar valores
         if st.button("💾 Guardar Cambios en Mantenimiento"):
             df_para_guardar = df_edit_mant.copy()
             for col_p in cols_porcentaje:
