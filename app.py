@@ -168,9 +168,13 @@ def aplicar_estilos_corporativos():
             background-color: {BG_CARD};
             border: 1px solid {BORDER_COLOR};
             border-radius: 10px;
-            padding: 10px 14px;
+            padding: 12px 16px;
             margin-bottom: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            height: 82px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }}
         .kpi-header {{
             font-size: 0.72rem;
@@ -181,7 +185,7 @@ def aplicar_estilos_corporativos():
             margin-bottom: 2px;
         }}
         .kpi-value {{
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 900;
             color: {TEXT_PRIMARY};
             line-height: 1.1;
@@ -458,55 +462,22 @@ if opcion == "📊 Panel de control":
         if col_costo:
             val_ingresos_alq = float(pd.to_numeric(df_alq_real[col_costo[0]], errors='coerce').sum())
 
-    # Tarjetas KPI superiores (Inventario, Baterías unificadas, Alquileres unificados)
-    k1, k2, k3 = st.columns(3)
-    with k1: 
-        render_kpi("📦", "UPS EN INVENTARIO", f"{val_inv:,}")
-    with k2: 
-        # Tarjeta unificada de Baterías
-        html_baterias_unificado = f"""
-        <div class="kpi-card">
-            <div class="kpi-header">🔋 Resumen de Baterías</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">CAMBIADAS (TOTAL)</span>
-                    <span style="font-size: 1.15rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_bat_total:,}</span>
-                </div>
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">AÑO {anio_actual}</span>
-                    <span style="font-size: 1.15rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">{val_bat_actual:,}</span>
-                </div>
-            </div>
-        </div>
-        """
-        st.markdown(html_baterias_unificado, unsafe_allow_html=True)
-    with k3: 
-        # Tarjeta unificada de Alquileres
-        html_alquileres_unificado = f"""
-        <div class="kpi-card">
-            <div class="kpi-header">🤝 Resumen de Alquileres</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">CANTIDAD</span>
-                    <span style="font-size: 1.15rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_alq_total}</span>
-                </div>
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">DÍAS</span>
-                    <span style="font-size: 1.15rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_dias_alq}</span>
-                </div>
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">INGRESOS</span>
-                    <span style="font-size: 1.15rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</span>
-                </div>
-            </div>
-        </div>
-        """
-        st.markdown(html_alquileres_unificado, unsafe_allow_html=True)
+    # Fila superior de tarjetas KPI (2 columnas simétricas y ordenadas)
+    c_sup_1, c_sup_2 = st.columns(2)
+    with c_sup_1:
+        col_a, col_b = st.columns(2)
+        with col_a: render_kpi("📦", "INVENTARIO", f"{val_inv:,} UPS")
+        with col_b: render_kpi("🛠️", f"MANT. {anio_actual}", f"{val_mant_actual:,}")
+    with c_sup_2:
+        col_c, col_d = st.columns(2)
+        with col_c: render_kpi("🔋", "BATERÍAS", f"{val_bat_actual:,}")
+        with col_d: render_kpi("⏱️", "ALQUILERES", f"S/ {val_ingresos_alq:,.2f}")
 
-    # Tarjetas KPI inferiores (solo Mantenimientos del año actual)
-    k4, _ = st.columns([1, 2])
-    with k4: 
-        render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
+    # Fila inferior de tarjetas KPI secundarias organizadas
+    c_inf_1, c_inf_2, c_inf_3 = st.columns(3)
+    with c_inf_1: render_kpi("🔋", "BATERÍAS (TOTAL)", f"{val_bat_total:,}")
+    with c_inf_2: render_kpi("🤝", "CANT. ALQUILERES", f"{val_alq_total}")
+    with c_inf_3: render_kpi("📅", "DÍAS ALQUILADOS", f"{val_dias_alq}")
 
     st.markdown("---")
 
@@ -564,7 +535,7 @@ if opcion == "📊 Panel de control":
         st.markdown("### 📌 Resumen ejecutivo")
         
         st.markdown(f"""
-        <div class="kpi-card" style="margin-bottom: 12px;">
+        <div class="kpi-card" style="margin-bottom: 12px; height: auto; padding: 12px;">
             <div class="kpi-header">📦 Inventario actual</div>
             <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">{val_inv:,} UPS</div>
             <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Equipos registrados en el inventario.</div>
@@ -572,7 +543,7 @@ if opcion == "📊 Panel de control":
         """, unsafe_allow_html=True)
 
         st.markdown(f"""
-        <div class="kpi-card" style="margin-bottom: 12px;">
+        <div class="kpi-card" style="margin-bottom: 12px; height: auto; padding: 12px;">
             <div class="kpi-header">🔋 Baterías {anio_actual}</div>
             <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">{val_bat_actual:,}</div>
             <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Baterías cambiadas durante {anio_actual}.</div>
@@ -580,7 +551,7 @@ if opcion == "📊 Panel de control":
         """, unsafe_allow_html=True)
 
         st.markdown(f"""
-        <div class="kpi-card" style="margin-bottom: 12px;">
+        <div class="kpi-card" style="margin-bottom: 12px; height: auto; padding: 12px;">
             <div class="kpi-header">💰 Alquileres</div>
             <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</div>
             <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Monto acumulado real de alquileres.</div>
