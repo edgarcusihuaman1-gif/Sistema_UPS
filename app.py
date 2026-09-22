@@ -458,16 +458,38 @@ if opcion == "📊 Panel de control":
         if col_costo:
             val_ingresos_alq = float(pd.to_numeric(df_alq_real[col_costo[0]], errors='coerce').sum())
 
+    # Tarjetas KPI superiores principales
     k1, k2, k3 = st.columns(3)
     with k1: render_kpi("📦", "UPS EN INVENTARIO", f"{val_inv:,}")
     with k2: render_kpi("🔋", "BATERÍAS CAMBIADAS", f"{val_bat_total:,}")
-    with k3: render_kpi("⏱️", "ALQUILERES", f"{val_alq_total:,}")
+    with k3: 
+        # Tarjeta unificada de Alquileres con detalles claros y mejor distribución visual
+        html_alquileres_unificado = f"""
+        <div class="kpi-card">
+            <div class="kpi-header">🤝 Resumen de Alquileres</div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+                <div>
+                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">CANTIDAD</span>
+                    <span style="font-size: 1.15rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_alq_total}</span>
+                </div>
+                <div>
+                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">DÍAS</span>
+                    <span style="font-size: 1.15rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_dias_alq}</span>
+                </div>
+                <div>
+                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">INGRESOS</span>
+                    <span style="font-size: 1.15rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</span>
+                </div>
+            </div>
+        </div>
+        """
+        st.markdown(html_alquileres_unificado, unsafe_allow_html=True)
 
-    k4, k5, k6, k7 = st.columns(4)
-    with k4: render_kpi("📅", "DÍAS ALQUILADOS", f"{val_dias_alq:,}")
-    with k5: render_kpi("💰", "INGRESOS POR ALQUILER", f"S/ {val_ingresos_alq:,.2f}")
-    with k6: render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
-    with k7: render_kpi("🔋", f"BATERÍAS {anio_actual}", f"{val_bat_actual:,}")
+    # Tarjetas KPI inferiores
+    k4, k5, k6 = st.columns(3)
+    with k4: render_kpi("🛠️", f"MANTENIMIENTOS {anio_actual}", f"{val_mant_actual:,}")
+    with k5: render_kpi("🔋", f"BATERÍAS {anio_actual}", f"{val_bat_actual:,}")
+    with k6: render_kpi("⏱️", "PROMEDIO DÍAS / ALQUILER", f"{(val_dias_alq / val_alq_total if val_alq_total > 0 else 0):.1f}")
 
     st.markdown("---")
 
