@@ -16,7 +16,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Ocupar todo el ancho disponible y ajustar márgenes fluidos */
     .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
@@ -24,12 +23,10 @@ st.markdown(
         padding-right: 3rem;
         max-width: 100% !important;
     }
-    /* Tarjetas métricas y contenedores responsivos */
     div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    /* Tablas y DataFrames responsivos */
     div[data-testid="stDataFrame"] {
         width: 100% !important;
     }
@@ -666,12 +663,15 @@ else:
                 ]
 
         with col_f2:
-          columnas_visibles = st.multiselect(
-              "Columnas visibles:",
-              options=list(df.columns),
-              default=list(df.columns),
-          )
-          if columnas_visibles:
+          # Selector de columnas visibles ahora oculto / organizado de manera desplegable y limpia
+          with st.expander("⚙️ Seleccionar Columnas Visibles", expanded=False):
+            columnas_visibles = st.multiselect(
+                "Elige las columnas a mostrar:",
+                options=list(df.columns),
+                default=list(df.columns),
+            )
+
+          if "columnas_visibles" in locals() and columnas_visibles:
             df_filtrado = df_filtrado[columnas_visibles]
 
           columnas_fecha = []
