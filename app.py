@@ -343,7 +343,7 @@ def generar_pdf(df_exportar, titulo_reporte):
 
 if menu == "🏠 Resumen General":
   st.subheader("📊 Panel General de Activos")
-  st.markdown("Estado actual de los registros en el sistema para el periodo.")
+  st.markdown("Estado actual de los registros in el sistema para el periodo.")
 
   col1, col2, col3, col4 = st.columns(4)
 
@@ -443,6 +443,10 @@ if menu == "🏠 Resumen General":
   if df_mantenimiento is not None:
     df_m_temp = df_mantenimiento.copy()
     df_m_temp.columns = df_m_temp.columns.str.strip()
+    if "MANT FECHA" in df_m_temp.columns:
+      df_m_temp["MANT FECHA"] = pd.to_datetime(
+          df_m_temp["MANT FECHA"], errors="coerce"
+      ).dt.strftime("%Y-%m-%d")
     if "MANT SE ENCONTRO" in df_m_temp.columns:
       criticos = df_m_temp[
           df_m_temp["MANT SE ENCONTRO"]
@@ -601,6 +605,16 @@ else:
 
   if df is not None:
     df_vista = df.copy()
+
+    # Formatear automáticamente todas las columnas que contengan fechas (YYYY-MM-DD sin hora)
+    for col in df_vista.columns:
+      if "FECHA" in col.upper() or "DATE" in col.upper():
+        df_vista[col] = (
+            pd.to_datetime(df_vista[col], errors="coerce")
+            .dt.strftime("%Y-%m-%d")
+            .fillna(df_vista[col])
+        )
+
     for col in df_vista.columns:
       if "CARGA" in col.upper() or "PORCENTAJE" in col.upper():
         df_vista[col] = pd.to_numeric(df_vista[col], errors="coerce").apply(
@@ -663,7 +677,6 @@ else:
                 ]
 
         with col_f2:
-          # Selector de columnas visibles ahora oculto / organizado de manera desplegable y limpia
           with st.expander("⚙️ Seleccionar Columnas Visibles", expanded=False):
             columnas_visibles = st.multiselect(
                 "Elige las columnas a mostrar:",
