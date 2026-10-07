@@ -1,993 +1,470 @@
-import streamlit as st
-import streamlit.components.v1 as components
-import pandas as pd
 from datetime import datetime
-import io
-import os
-import glob
-import plotly.express as px
+from io import BytesIO
+import pandas as pd
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfgen import canvas
+import streamlit as st
 
-# Configuración inicial de la página
 st.set_page_config(
-    page_title="Sistema de Gestión TI - UPS",
-    page_icon="💻",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Sistema de Gestión de UPS", page_icon="⚡", layout="wide"
 )
 
-# Paleta corporativa optimizada de alto contraste
-BG_MAIN = "#0D1117"        # Fondo principal negro carbón profundo
-BG_CARD = "#161B22"        # Fondo de tarjetas y contenedores
-BORDER_COLOR = "#30363D"   # Bordes sutiles pero definidos
-TEXT_PRIMARY = "#FFFFFF"   # Texto blanco puro para máxima legibilidad
-TEXT_SECONDARY = "#C9D1D9" # Texto secundario claro
-SUMMARY_VAL_COLOR = "#58A6FF" # Azul brillante para valores clave
-INPUT_BG = "#21262D"       # Fondo para campos de entrada
-BTN_BG = "#21262D"         # Fondo para botones
+st.title("⚡ Plataforma de Control y Gestión de UPS")
+st.markdown(
+    "Panel de control centralizado avanzado para la administración de activos,"
+    " inventario, mantenimientos y baterías."
+)
 
-def aplicar_estilos_corporativos():
-    css = f"""
-        <style>
-        #MainMenu {{visibility: hidden;}}
-        footer {{visibility: hidden;}}
-        
-        header[data-testid="stHeader"] {{
-            display: none !important;
-            visibility: hidden !important;
-            height: 0px !important;
-        }}
-        .block-container {{
-            padding-top: 0.5rem !important;
-            padding-bottom: 1rem !important;
-            margin-top: -20px !important;
-        }}
-        
-        .stApp {{
-            background-color: {BG_MAIN} !important;
-            color: {TEXT_PRIMARY} !important;
-        }}
-        
-        div.stMarkdown {{
-            margin-bottom: -10px !important;
-        }}
-        
-        div[data-testid="stVerticalBlock"] {{
-            gap: 0.4rem !important;
-        }}
 
-        h1, h2, h3, h4, h5, h6, span, p, label, 
-        .stMarkdown, div[data-testid="stMarkdownContainer"], 
-        div[data-testid="stText"], .stMetricLabel, .stMetricValue, .stCaption {{
-            color: {TEXT_PRIMARY} !important;
-        }}
-
-        input[type="date"], input[type="text"], input[type="password"], input[type="number"] {{
-            color-scheme: dark !important;
-            color: {TEXT_PRIMARY} !important;
-            background-color: {INPUT_BG} !important;
-        }}
-
-        /* SOLUCIÓN DEFINITIVA PARA LA EDICIÓN DE CELDAS (st.data_editor) */
-        div[data-testid="stDataEditor"] input,
-        div[data-testid="stDataEditor"] textarea,
-        div[data-testid="stDataFrame"] input,
-        div[data-testid="stDataFrame"] textarea,
-        .dvn-scroller input, .dvn-scroller textarea,
-        div[role="dialog"] input, div[role="dialog"] textarea {{
-            color: #000000 !important;
-            background-color: #FFFFFF !important;
-            -webkit-text-fill-color: #000000 !important;
-            font-weight: 700 !important;
-        }}
-
-        div[data-baseweb="select"] > div, 
-        div[data-baseweb="input"] > div, 
-        div[data-baseweb="base-input"],
-        div[data-baseweb="base-input"] > input,
-        div[data-baseweb="calendar"] {{
-            background-color: {INPUT_BG} !important;
-            color: {TEXT_PRIMARY} !important;
-            border-color: {BORDER_COLOR} !important;
-            color-scheme: dark !important;
-        }}
-        
-        div[data-baseweb="popover"], div[data-baseweb="menu"], 
-        div[data-testid="stDataFrameToolbar"], div[data-testid="stElementToolbar"],
-        div[data-baseweb="popover"] > div, div[data-baseweb="menu"] > div,
-        ul[data-baseweb="menu"], li[data-baseweb="menu-item"] {{
-            background-color: {BG_CARD} !important;
-            color: {TEXT_PRIMARY} !important;
-            border-color: {BORDER_COLOR} !important;
-        }}
-        
-        div[data-baseweb="popover"] *, div[data-baseweb="menu"] *,
-        div[data-testid="stDataFrameToolbar"] *, div[data-testid="stElementToolbar"] * {{
-            color: {TEXT_PRIMARY} !important;
-            background-color: transparent !important;
-        }}
-
-        textarea, select {{
-            color: {TEXT_PRIMARY} !important;
-            background-color: {INPUT_BG} !important;
-        }}
-
-        .stButton > button, div.stButton > button, button[kind="secondary"], 
-        div[data-testid="stDownloadButton"] > button, .stDownloadButton > button,
-        div[data-testid="stFormSubmitButton"] > button {{
-            background-color: {BTN_BG} !important;
-            color: {TEXT_PRIMARY} !important;
-            border: 1px solid {BORDER_COLOR} !important;
-            font-weight: 700 !important;
-            opacity: 1 !important;
-        }}
-        .stButton > button *, .stDownloadButton > button *, div[data-testid="stFormSubmitButton"] > button * {{
-            color: {TEXT_PRIMARY} !important;
-            opacity: 1 !important;
-            font-weight: 700 !important;
-        }}
-        .stButton > button:hover, .stButton > button:hover *, 
-        .stDownloadButton > button:hover, .stDownloadButton > button:hover *,
-        div[data-testid="stFormSubmitButton"] > button:hover, div[data-testid="stFormSubmitButton"] > button:hover * {{
-            border-color: {SUMMARY_VAL_COLOR} !important;
-            color: {SUMMARY_VAL_COLOR} !important;
-        }}
-
-        div[data-testid="stDataFrame"] th, 
-        div[data-testid="stDataEditor"] th,
-        .dataframe th,
-        div[data-testid="stDataFrame"] div[role="columnheader"],
-        div[data-testid="stDataEditor"] div[role="columnheader"] {{
-            background-color: #1F6FEB !important;
-            color: #FFFFFF !important;
-            font-weight: 900 !important;
-            font-size: 0.9rem !important;
-            opacity: 1 !important;
-            border-bottom: 3px solid #58A6FF !important;
-            border-right: 1px solid {BORDER_COLOR} !important;
-        }}
-        
-        div[data-testid="stDataFrame"] td, 
-        div[data-testid="stDataEditor"] td,
-        .dataframe td {{
-            color: #FFFFFF !important;
-            background-color: {BG_CARD} !important;
-            font-weight: 600 !important;
-            opacity: 1 !important;
-            border-right: 1px solid {BORDER_COLOR} !important;
-            border-bottom: 1px solid {BORDER_COLOR} !important;
-        }}
-
-        .main-header {{
-            background-color: {BG_CARD};
-            padding: 12px 18px;
-            border-radius: 10px;
-            border: 1px solid {BORDER_COLOR};
-            margin-bottom: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-        }}
-        .main-header h1 {{
-            font-size: 1.4rem !important;
-            font-weight: 800;
-            color: {TEXT_PRIMARY};
-            margin: 0;
-        }}
-        .main-header p {{
-            color: {TEXT_SECONDARY};
-            margin: 2px 0 4px 0;
-            font-size: 0.85rem;
-        }}
-
-        .kpi-card {{
-            background-color: {BG_CARD};
-            border: 1px solid {BORDER_COLOR};
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            height: 82px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }}
-        
-        .kpi-card-tall {{
-            background-color: {BG_CARD};
-            border: 1px solid {BORDER_COLOR};
-            border-radius: 10px;
-            padding: 16px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            height: 178px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }}
-
-        .kpi-header {{
-            font-size: 0.72rem;
-            font-weight: 800;
-            color: {TEXT_SECONDARY};
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
-        }}
-        .kpi-value {{
-            font-size: 1.35rem;
-            font-weight: 900;
-            color: {TEXT_PRIMARY};
-            line-height: 1.1;
-        }}
-
-        section[data-testid="stSidebar"] {{
-            background-color: {BG_CARD} !important;
-            border-right: 1px solid {BORDER_COLOR};
-            min-width: 275px !important;
-            max-width: 275px !important;
-            width: 275px !important;
-        }}
-        section[data-testid="stSidebar"] > div:first-child {{
-            width: 275px !important;
-            padding: 1.2rem 0.8rem !important;
-        }}
-        section[data-testid="stSidebar"] * {{
-            color: {TEXT_PRIMARY} !important;
-        }}
-        
-        section[data-testid="stSidebar"] h1 {{
-            font-size: 1.15rem !important;
-            font-weight: 800 !important;
-            margin-bottom: 0.2rem !important;
-        }}
-        
-        section[data-testid="stSidebar"] .stCaption p {{
-            font-size: 0.85rem !important;
-            color: {TEXT_SECONDARY} !important;
-            margin-bottom: 0.8rem !important;
-        }}
-
-        section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] {{
-            gap: 6px !important;
-        }}
-        
-        section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {{
-            background-color: transparent !important;
-            border: 1px solid transparent !important;
-            border-radius: 8px !important;
-            padding: 8px 10px !important;
-            margin-bottom: 2px !important;
-        }}
-        
-        section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {{
-            background-color: {INPUT_BG} !important;
-            border-color: {BORDER_COLOR} !important;
-        }}
-        
-        section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:has(input:checked) {{
-            background-color: {INPUT_BG} !important;
-            border: 1px solid #1F6FEB !important;
-        }}
-
-        section[data-testid="stSidebar"] .stRadio label p {{
-            font-size: 0.95rem !important;
-            font-weight: 600 !important;
-        }}
-        </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
-
-aplicar_estilos_corporativos()
-
-def buscar_archivo_excel(patron_nombre):
-    archivos = glob.glob(f"*{patron_nombre}*.xlsx")
-    if archivos:
-        return archivos[0]
+# Función para cargar Excel en tiempo real y limpiar columnas duplicadas
+def cargar_excel(nombre_archivo):
+  try:
+    df = pd.read_excel(nombre_archivo)
+    df.columns = df.columns.str.strip()
+    if df.columns.duplicated().any():
+      cols = pd.Series(df.columns)
+      for dup in cols[cols.duplicated()].unique():
+        cols[cols == dup] = [
+            f"{dup}_{i}" if i != 0 else dup
+            for i in range(sum(cols == dup))
+        ]
+      df.columns = cols
+    return df
+  except FileNotFoundError:
     return None
 
-PATRONES = {
-    "Inventario": "Inventario_UPS",
-    "Mantenimiento": "Mantenimiento_UPS",
-    "Baterias": "Cambios_Baterias",
-    "Alquiler": "alquiler_de_UPS"
-}
 
-USUARIOS = {
-    "admin": {"password": "123", "rol": "admin", "nombre": "Administrador TI"},
-    "reportes": {"password": "123", "rol": "visor_exportador", "nombre": "Analista TI"},
-    "invitado": {"password": "123", "rol": "solo_vista", "nombre": "Soporte Técnico"}
-}
+# Función para obtener tiendas únicas y la suma total directa de baterías
+def obtener_metricas_baterias_2026(df):
+  if df is None:
+    return 0, 0
 
-if "autenticado" not in st.session_state:
-    st.session_state.autenticado = False
-    st.session_state.usuario_actual = None
-    st.session_state.rol_actual = None
+  df_temp = df.copy()
+  df_temp.columns = df_temp.columns.str.strip()
 
-def login():
-    st.title("🔐 Acceso - Infraestructura TI & UPS")
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        with st.form("login_form"):
-            user = st.text_input("Usuario TI:").strip().lower()
-            pwd = st.text_input("Contraseña:", type="password")
-            if st.form_submit_button("Ingresar al Sistema", use_container_width=True):
-                if user in USUARIOS and USUARIOS[user]["password"] == pwd:
-                    st.session_state.autenticado = True
-                    st.session_state.usuario_actual = USUARIOS[user]["nombre"]
-                    st.session_state.rol_actual = USUARIOS[user]["rol"]
-                    st.rerun()
-                else:
-                    st.error("Credenciales incorrectas")
+  cant_tiendas = 0
+  if "TIENDA" in df_temp.columns:
+    cant_tiendas = df_temp["TIENDA"].dropna().nunique()
 
-def logout():
-    st.session_state.autenticado = False
-    st.rerun()
+  total_baterias = 0
+  cols_cant = [c for c in df_temp.columns if "CANTIDAD" in c.upper()]
+  for col_c in cols_cant:
+    total_baterias += int(
+        pd.to_numeric(df_temp[col_c], errors="coerce").sum()
+    )
 
-if not st.session_state.autenticado:
-    login()
-    st.stop()
+  return cant_tiendas, total_baterias
 
-def limpiar_fechas_dataframe(df):
-    if df.empty:
-        return df
-    cols_validas = [c for c in df.columns if not str(c).startswith("Unnamed")]
-    df = df[cols_validas].copy()
-    
-    for col in df.columns:
-        if "FECHA" in str(col).upper():
-            fechas_parsed = pd.to_datetime(df[col], errors='coerce')
-            df[col] = fechas_parsed.dt.strftime('%Y-%m-%d').fillna(df[col].astype(str))
-            df[col] = df[col].str.replace("00:00:00", "").str.strip()
-            df[col] = df[col].replace(["NaT", "nan", "None"], "")
-    return df
 
-def cargar_excel(clave):
-    ruta = buscar_archivo_excel(PATRONES[clave])
-    if ruta and os.path.exists(ruta):
-        try:
-            if clave == "Inventario":
-                df = pd.read_excel(ruta, sheet_name='UPS Inventario')
-            elif clave == "Mantenimiento":
-                df = pd.read_excel(ruta, header=1)
-                df = limpiar_fechas_dataframe(df)
-            elif clave == "Baterias":
-                df = pd.read_excel(ruta, header=0)
-                df = limpiar_fechas_dataframe(df)
-            else:
-                df = pd.read_excel(ruta)
-            return df
-        except Exception:
-            return pd.DataFrame()
-    return pd.DataFrame()
+# Cargar los datasets principales
+df_inventario = cargar_excel("Inventario_UPS_2026.xlsx")
+df_mantenimiento = cargar_excel("Mantenimiento_UPS_2026.xlsx")
+df_baterias = cargar_excel("Cambios_Baterias_UPS_2026.xlsx")
+df_alquiler = cargar_excel("alquiler_de_UPS.xlsx")
 
-def guardar_excel(df, clave):
-    ruta = buscar_archivo_excel(PATRONES[clave]) or f"{PATRONES[clave]}.xlsx"
-    try:
-        if clave == "Inventario":
-            with pd.ExcelWriter(ruta, engine='openpyxl') as writer:
-                df.to_excel(writer, sheet_name='UPS Inventario', index=False)
+# Conteos seguros
+c_inv = len(df_inventario) if df_inventario is not None else 0
+c_alq = len(df_alquiler) if df_alquiler is not None else 0
+c_mant = len(df_mantenimiento) if df_mantenimiento is not None else 0
+
+tiendas_bat_2026, total_bat_2026 = obtener_metricas_baterias_2026(df_baterias)
+c_bat = len(df_baterias) if df_baterias is not None else 0
+
+# Menú lateral principal
+menu = st.sidebar.selectbox(
+    "Navegación",
+    [
+        "🏠 Resumen General",
+        f"📦 Inventario UPS ({c_inv})",
+        f"🔧 Mantenimiento ({c_mant})",
+        f"🔋 Cambios de Baterías ({c_bat})",
+        f"📋 Alquiler de UPS ({c_alq})",
+    ],
+)
+
+
+# Función para generar reporte PDF completo en formato horizontal (Landscape)
+def generar_pdf(df_exportar, titulo_reporte):
+  buffer = BytesIO()
+  p = canvas.Canvas(buffer, pagesize=landscape(letter))
+  width, height = landscape(letter)
+
+  p.setFont("Helvetica-Bold", 16)
+  p.drawString(40, height - 40, f"Reporte: {titulo_reporte}")
+  p.setFont("Helvetica", 10)
+  p.drawString(
+      40, height - 58, "Sistema de Gestión de UPS - Generado Automáticamente"
+  )
+
+  y = height - 90
+  p.setFont("Helvetica-Bold", 8)
+
+  # Columnas clave que queremos forzar si existen
+  cols_disponibles = list(df_exportar.columns)
+  forzadas = [
+      "ITEM",
+      "TIENDA",
+      "RAZON",
+      "MARCA",
+      "CAPACIDAD",
+      "MARCA DE UPS",
+      "MODELO",
+      "CANTIDAD",
+  ]
+
+  columnas = [c for c in forzadas if c in cols_disponibles]
+
+  # Si faltasen o hubiese espacio, completamos con las primeras disponibles hasta 8 columnas
+  for c in cols_disponibles:
+    if c not in columnas and len(columnas) < 8:
+      columnas.append(c)
+
+  ancho_columna = (width - 80) / len(columnas)
+
+  x_pos = 40
+  for col in columnas:
+    p.drawString(x_pos, y, str(col)[:15])
+    x_pos += ancho_columna
+
+  y -= 15
+  p.setLineWidth(0.5)
+  p.line(40, y + 5, width - 40, y + 5)
+
+  y -= 15
+  p.setFont("Helvetica", 7)
+
+  for index, row in df_exportar.iterrows():
+    if y < 40:
+      p.showPage()
+      y = height - 40
+      p.setFont("Helvetica-Bold", 8)
+      x_pos = 40
+      for col in columnas:
+        p.drawString(x_pos, y, str(col)[:15])
+        x_pos += ancho_columna
+      y -= 15
+      p.setLineWidth(0.5)
+      p.line(40, y + 5, width - 40, y + 5)
+      y -= 15
+      p.setFont("Helvetica", 7)
+
+    x_pos = 40
+    for col in columnas:
+      val = str(row[col]) if pd.notna(row[col]) else ""
+      p.drawString(x_pos, y, val[:18])
+      x_pos += ancho_columna
+    y -= 12
+
+  p.save()
+  buffer.seek(0)
+  return buffer
+
+
+if menu == "🏠 Resumen General":
+  st.subheader("📊 Panel General de Activos")
+  st.markdown("Estado actual de los registros en el sistema para el periodo 2026.")
+
+  col1, col2, col3, col4 = st.columns(4)
+
+  with col1:
+    with st.container(border=True):
+      st.markdown(
+          "<p"
+          ' style="font-size:14px; font-weight:600; margin-bottom:5px;"'
+          ">Inventario Total</p>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(
+          f"<h2 style='margin-top:0px; margin-bottom:0px;'>{c_inv if df_inventario is not None else 'Error'}</h2>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(
+          "<p"
+          ' style="font-size:11px; color:transparent;'
+          ' margin-bottom:0px;">-</p>',
+          unsafe_allow_html=True,
+      )
+
+  with col2:
+    with st.container(border=True):
+      st.markdown(
+          "<p"
+          ' style="font-size:14px; font-weight:600; margin-bottom:5px;"'
+          ">Mantenimientos</p>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(
+          f"<h2 style='margin-top:0px; margin-bottom:0px;'>{c_mant}</h2>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(
+          "<p"
+          ' style="font-size:11px; color:transparent;'
+          ' margin-bottom:0px;">-</p>',
+          unsafe_allow_html=True,
+      )
+
+  with col3:
+    with st.container(border=True):
+      st.markdown(
+          "<p"
+          ' style="font-size:14px; font-weight:600; margin-bottom:8px;"'
+          ">Cambio de baterías</p>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(
+          f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                    <div style="flex: 1; text-align: left;">
+                        <span style="font-size: 11px; color: gray; display: block;">Tiendas</span>
+                        <span style="font-size: 22px; font-weight: bold; display: block;">{tiendas_bat_2026}</span>
+                    </div>
+                    <div style="flex: 1; text-align: right;">
+                        <span style="font-size: 11px; color: gray; display: block;">Cantidad</span>
+                        <span style="font-size: 22px; font-weight: bold; display: block;">{total_bat_2026}</span>
+                    </div>
+                </div>
+                """,
+          unsafe_allow_html=True,
+      )
+
+  with col4:
+    with st.container(border=True):
+      st.markdown(
+          "<p"
+          ' style="font-size:14px; font-weight:600; margin-bottom:5px;"'
+          ">Equipos Alquilados</p>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(
+          f"<h2 style='margin-top:0px; margin-bottom:0px;'>{c_alq if df_alquiler is not None else 'Error'}</h2>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(
+          "<p"
+          ' style="font-size:11px; color:transparent;'
+          ' margin-bottom:0px;">-</p>',
+          unsafe_allow_html=True,
+      )
+
+  st.markdown("---")
+  st.info(
+      "👉 Selecciona un módulo en el menú de la izquierda para ver el detalle"
+      " completo, buscar equipos, aplicar filtros y exportar a Excel y PDF."
+  )
+
+else:
+  if "Inventario UPS" in menu:
+    st.subheader("📦 Inventario General de UPS 2026")
+    df = df_inventario
+    nombre_archivo = "Inventario_UPS_2026.xlsx"
+    nombre_base = "inventario_ups"
+    titulo_modulo = "Inventario UPS"
+  elif "Mantenimiento" in menu:
+    st.subheader("🔧 Registro de Mantenimientos")
+    df = df_mantenimiento
+    nombre_archivo = "Mantenimiento_UPS_2026.xlsx"
+    nombre_base = "mantenimiento_ups"
+    titulo_modulo = "Mantenimiento"
+  elif "Cambios de Baterías" in menu:
+    st.subheader("🔋 Control de Cambios de Baterías 2026")
+    df = df_baterias
+    nombre_archivo = "Cambios_Baterias_UPS_2026.xlsx"
+    nombre_base = "cambios_baterias"
+    titulo_modulo = "Cambios de Baterías"
+  elif "Alquiler de UPS" in menu:
+    st.subheader("📋 Gestión de Alquiler de UPS")
+    df = df_alquiler
+    nombre_archivo = "alquiler_de_UPS.xlsx"
+    nombre_base = "alquiler_ups"
+    titulo_modulo = "Alquiler de UPS"
+
+  if df is not None:
+    df_vista = df.copy()
+    for col in df_vista.columns:
+      if "CARGA" in col.upper() or "PORCENTAJE" in col.upper():
+        df_vista[col] = pd.to_numeric(df_vista[col], errors="coerce").apply(
+            lambda x: f"{x * 100:.1f}%" if pd.notna(x) else ""
+        )
+
+    tab_tabla, tab_resumen = st.tabs(
+        ["📋 Vista de Datos y Exportación", "📊 Análisis y Distribución"]
+    )
+
+    with tab_tabla:
+      st.markdown("### 🔍 Panel de Búsqueda y Filtros Avanzados")
+
+      df_filtrado = df_vista.copy()
+
+      busqueda = st.text_input(
+          "Búsqueda rápida global (equipo, código, serie, etc.):"
+      )
+      if busqueda:
+        mask = (
+            df_filtrado.astype(str)
+            .apply(lambda x: x.str.contains(busqueda, case=False, na=False))
+            .any(axis=1)
+        )
+        df_filtrado = df_filtrado[mask]
+
+      columnas_texto = [
+          col for col in df.select_dtypes(include=["object", "category"]).columns
+      ]
+      candidatas_razon_marca = [
+          c
+          for c in columnas_texto
+          if any(
+              k in c.lower()
+              for k in ["razon", "social", "marca", "proveedor", "cliente", "empresa"]
+          )
+      ]
+
+      if candidatas_razon_marca:
+        col_rm = st.selectbox(
+            "Filtrar por Razón Social / Marca (Opcional):",
+            ["-- Todos --"] + candidatas_razon_marca,
+        )
+        if col_rm != "-- Todos --":
+          valores_unicos = ["-- Todos --"] + sorted(
+              df[col_rm].dropna().astype(str).unique().tolist()
+          )
+          val_seleccionado = st.selectbox(
+              f"Selecciona valor para `{col_rm}`:", valores_unicos
+          )
+          if val_seleccionado != "-- Todos --":
+            df_filtrado = df_filtrado[
+                df_filtrado[col_rm].astype(str) == val_seleccionado
+            ]
+
+      columnas_fecha = []
+      for col in df.columns:
+        if "fecha" in col.lower() or "date" in col.lower():
+          columnas_fecha.append(col)
         else:
-            df.to_excel(ruta, index=False, engine='openpyxl')
-        return True
-    except Exception:
-        return False
+          try:
+            pd.to_datetime(df[col].dropna().head(10))
+            if df[col].dtype == "object":
+              columnas_fecha.append(col)
+          except:
+            pass
 
-for clave in PATRONES.keys():
-    if f"df_{clave}" not in st.session_state:
-        st.session_state[f"df_{clave}"] = cargar_excel(clave)
+      if columnas_fecha:
+        with st.expander("📅 Filtro Avanzado por Rango de Fechas"):
+          col_fecha_sel = st.selectbox(
+              "Selecciona la columna de fecha a evaluar:", columnas_fecha
+          )
+          if col_fecha_sel:
+            try:
+              df_temp = df_filtrado.copy()
+              df_temp[col_fecha_sel] = pd.to_datetime(
+                  df_temp[col_fecha_sel], errors="coerce"
+              )
+              fechas_validas = df_temp[col_fecha_sel].dropna()
 
-def render_kpi(icono, titulo, valor):
-    html = f"""
-    <div class="kpi-card">
-        <div class="kpi-header">{icono}&nbsp;{titulo}</div>
-        <div class="kpi-value">{valor}</div>
-    </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
+              if not fechas_validas.empty:
+                min_f = fechas_validas.min().date()
+                max_f = fechas_validas.max().date()
 
-st.sidebar.title("💻 GESTIÓN DE UPS")
-st.sidebar.caption(f"👤 **{st.session_state.usuario_actual}**")
+                rango_fechas = st.date_input(
+                    "Selecciona el rango de fechas:",
+                    value=(min_f, max_f),
+                    min_value=min_f,
+                    max_value=max_f,
+                )
 
-menu = ["📊 Panel de control", "📦 Inventario UPS", "🛠️ Mantenimientos", "🔋 Cambio de baterías", "🤝 Alquileres"]
+                if isinstance(rango_fechas, tuple) and len(rango_fechas) == 2:
+                  f_inicio, f_fin = rango_fechas
+                  mask_fecha = (
+                      df_temp[col_fecha_sel].dt.date >= f_inicio
+                  ) & (df_temp[col_fecha_sel].dt.date <= f_fin)
+                  df_filtrado = df_filtrado[mask_fecha]
+            except Exception as e:
+              st.warning(
+                  "No se pudo aplicar el filtro de fecha automáticamente en"
+                  " este formato."
+              )
 
-if st.session_state.rol_actual == "admin":
-    menu.insert(3, "📝 Nuevo Registro")
-
-if st.session_state.rol_actual in ["admin", "visor_exportador"]:
-    menu.append("📥 Exportar datos")
-
-opcion = st.sidebar.radio("Seleccionar módulo:", menu)
-
-if st.sidebar.button("🚪 Cerrar Sesión", use_container_width=True):
-    logout()
-
-anio_actual = datetime.now().year
-
-st.markdown("""
-    <div class="main-header">
-        <h1>💻 Sistemas TI - Control de UPS</h1>
-        <p>Plataforma centralizada de infraestructura para el control de inventario, mantenimiento, baterías y alquileres.</p>
-""", unsafe_allow_html=True)
-
-components.html("""
-    <div style="display: inline-flex; align-items:center; background-color: #21262D; color: #58A6FF; padding: 2px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: 700; border: 1px solid #30363D; font-family: sans-serif;">
-        🟢 Servidor TI Activo • Actualizado <span id="reloj" style="margin-left: 4px;"></span>
-    </div>
-    <script>
-        function actualizarReloj() {
-            const ahora = new Date();
-            const dia = String(ahora.getDate()).padStart(2, '0');
-            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-            const anio = ahora.getFullYear();
-            const horas = String(ahora.getHours()).padStart(2, '0');
-            const minutos = String(ahora.getMinutes()).padStart(2, '0');
-            const segundos = String(ahora.getSeconds()).padStart(2, '0');
-            document.getElementById('reloj').innerText = `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
-        }
-        actualizarReloj();
-        setInterval(actualizarReloj, 1000);
-    </script>
-""", height=28)
-
-st.markdown("</div>", unsafe_allow_html=True)
-
-# -------------------------------------------------------------
-# PANEL DE CONTROL (DASHBOARD)
-# -------------------------------------------------------------
-if opcion == "📊 Panel de control":
-    st.subheader("📊 Panel de control TI")
-    st.caption("Resumen ejecutivo de la infraestructura de UPS.")
-
-    df_inv = st.session_state.df_Inventario
-    df_mant = st.session_state.df_Mantenimiento
-    df_bat = st.session_state.df_Baterias
-    df_alq = st.session_state.df_Alquiler
-
-    val_inv = len(df_inv)
-
-    val_mant_total = 0
-    val_mant_actual = 0
-    if not df_mant.empty:
-        col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
-        if col_mant_f:
-            val_mant_total = int(df_mant[col_mant_f[0]].notna().sum())
-            anos_col = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year
-            val_mant_actual = int((anos_col == anio_actual).sum())
-        else:
-            val_mant_total = len(df_mant)
-            val_mant_actual = len(df_mant)
-
-    val_bat_anterior = 0
-    val_bat_actual = 0
-    val_bat_total = 0
-    if not df_bat.empty:
-        col_bat_actual = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '26' in str(c)]
-        col_bat_ant = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '25' in str(c)]
-        
-        if col_bat_ant:
-            val_bat_anterior = int(pd.to_numeric(df_bat[col_bat_ant[0]], errors='coerce').sum())
-        if col_bat_actual:
-            val_bat_actual = int(pd.to_numeric(df_bat[col_bat_actual[0]], errors='coerce').sum())
-            
-        val_bat_total = val_bat_anterior + val_bat_actual
-
-    val_alq_total = 0
-    val_dias_alq = 0
-    val_ingresos_alq = 0.0
-    if not df_alq.empty:
-        col_cot = [c for c in df_alq.columns if 'COTIZACION' in str(c).upper()]
-        if col_cot:
-            df_alq_real = df_alq.dropna(subset=[col_cot[0]])
-            df_alq_real = df_alq_real[~df_alq_real[col_cot[0]].astype(str).str.contains('SUB-TOTAL|TOTAL', case=False, na=False)]
-        else:
-            df_alq_real = df_alq.dropna(how='all')
-
-        val_alq_total = len(df_alq_real)
-        col_dias = [c for c in df_alq_real.columns if 'DIAS' in str(c).upper()]
-        if col_dias:
-            val_dias_alq = int(pd.to_numeric(df_alq_real[col_dias[0]], errors='coerce').sum())
-        
-        col_costo = [c for c in df_alq_real.columns if 'COSTO TOTAL' in str(c).upper() or 'TOTAL' in str(c).upper()]
-        if col_costo:
-            val_ingresos_alq = float(pd.to_numeric(df_alq_real[col_costo[0]], errors='coerce').sum())
-
-    k1, k2, k3 = st.columns(3)
-    
-    with k1: 
-        st.markdown(f"""
-        <div class="kpi-card" style="margin-bottom: 8px;">
-            <div class="kpi-header">📦 UPS EN INVENTARIO</div>
-            <div class="kpi-value">{val_inv:,}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-header">🛠️ MANTENIMIENTOS {anio_actual}</div>
-            <div class="kpi-value">{val_mant_actual:,}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with k2: 
-        html_baterias_unificado = f"""
-        <div class="kpi-card-tall">
-            <div class="kpi-header">🔋 RESUMEN DE BATERÍAS</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0;">
-                <div>
-                    <span style="font-size: 0.7rem; color: {TEXT_SECONDARY}; display: block;">CAMBIADAS (TOTAL)</span>
-                    <span style="font-size: 1.5rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_bat_total:,}</span>
-                </div>
-                <div>
-                    <span style="font-size: 0.7rem; color: {TEXT_SECONDARY}; display: block;">AÑO {anio_actual}</span>
-                    <span style="font-size: 1.5rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">{val_bat_actual:,}</span>
-                </div>
-            </div>
-            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; border-top: 1px solid {BORDER_COLOR}; pt-2;">
-                Control de sustituciones e historial anual.
-            </div>
-        </div>
-        """
-        st.markdown(html_baterias_unificado, unsafe_allow_html=True)
-        
-    with k3: 
-        html_alquileres_unificado = f"""
-        <div class="kpi-card-tall">
-            <div class="kpi-header">🤝 RESUMEN DE ALQUILERES</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0;">
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">CANTIDAD</span>
-                    <span style="font-size: 1.2rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_alq_total}</span>
-                </div>
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">DÍAS</span>
-                    <span style="font-size: 1.2rem; font-weight: 900; color: {TEXT_PRIMARY};">{val_dias_alq}</span>
-                </div>
-                <div>
-                    <span style="font-size: 0.65rem; color: {TEXT_SECONDARY}; display: block;">INGRESOS</span>
-                    <span style="font-size: 1.2rem; font-weight: 900; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</span>
-                </div>
-            </div>
-            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; border-top: 1px solid {BORDER_COLOR}; pt-2;">
-                Monto acumulado y días operativos de alquiler.
-            </div>
-        </div>
-        """
-        st.markdown(html_alquileres_unificado, unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    col_graficos, col_resumen = st.columns([2.2, 1])
-
-    with col_graficos:
-        st.markdown("### 📅 Comparativo por año")
-        
-        st.markdown("##### 🔋 Cambios de baterías")
-        df_chart_bat = pd.DataFrame({
-            "Año": [str(anio_actual - 1), str(anio_actual)],
-            "Cantidad": [val_bat_anterior, val_bat_actual]
-        })
-        fig_bat = px.bar(
-            df_chart_bat, x="Cantidad", y="Año", orientation='h',
-            text="Cantidad", color="Año",
-            color_discrete_map={str(anio_actual - 1): "#1F6FEB", str(anio_actual): "#388BFd"}
+      with st.expander("⚙️ Personalizar columnas visibles"):
+        columnas_visibles = st.multiselect(
+            "Selecciona las columnas que deseas visualizar en pantalla:",
+            options=list(df.columns),
+            default=list(df.columns),
         )
-        fig_bat.update_layout(
-            paper_bgcolor=BG_CARD, plot_bgcolor=BG_CARD,
-            font=dict(color=TEXT_PRIMARY),
-            margin=dict(l=10, r=10, t=10, b=10),
-            height=200,
-            xaxis=dict(showgrid=True, gridcolor=BORDER_COLOR),
-            yaxis=dict(showgrid=False),
-            showlegend=False
+        if columnas_visibles:
+          df_filtrado = df_filtrado[columnas_visibles]
+
+      st.markdown("---")
+
+      col_tit, col_btn = st.columns([2, 3])
+      with col_tit:
+        st.markdown(
+            "### 📋 Vista de Datos\n*Descarga los registros filtrados*"
         )
-        fig_bat.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
-        st.plotly_chart(fig_bat, use_container_width=True)
+      with col_btn:
+        c_ex1, c_ex2, c_ex3 = st.columns(3)
+        with c_ex1:
+          csv_data = df_filtrado.to_csv(index=False).encode("utf-8")
+          st.download_button(
+              label="📄 CSV",
+              data=csv_data,
+              file_name=f"{nombre_base}_filtrado.csv",
+              mime="text/csv",
+          )
+        with c_ex2:
+          output_excel = BytesIO()
+          with pd.ExcelWriter(output_excel, engine="openpyxl") as writer:
+            df_filtrado.to_excel(writer, index=False, sheet_name="Reporte")
+          excel_data = output_excel.getvalue()
+          st.download_button(
+              label="📊 Excel",
+              data=excel_data,
+              file_name=f"{nombre_base}_filtrado.xlsx",
+              mime=(
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              ),
+          )
+        with c_ex3:
+          pdf_buffer = generar_pdf(
+              df_filtrado, f"{titulo_modulo} ({len(df_filtrado)}) (Filtrado)"
+          )
+          st.download_button(
+              label="📑 PDF",
+              data=pdf_buffer,
+              file_name=f"{nombre_base}_filtrado.pdf",
+              mime="application/pdf",
+          )
 
-        st.markdown("##### 🛠️ Mantenimientos")
-        val_mant_anterior = val_mant_total - val_mant_actual
-        df_chart_mant = pd.DataFrame({
-            "Año": [str(anio_actual - 1), str(anio_actual)],
-            "Cantidad": [val_mant_anterior, val_mant_actual]
-        })
-        fig_mant = px.bar(
-            df_chart_mant, x="Año", y="Cantidad",
-            text="Cantidad", color="Año",
-            color_discrete_map={str(anio_actual - 1): "#1F6FEB", str(anio_actual): "#388BFd"}
+      st.markdown("---")
+      st.dataframe(df_filtrado, width="stretch")
+      st.info(
+          f"Mostrando {len(df_filtrado)} registros (de un total de {len(df)})."
+      )
+
+    with tab_resumen:
+      st.markdown("### 📈 Distribución y Detalle por Categoría")
+      st.markdown(
+          "Selecciona cualquier columna de texto para desglosar y ver el"
+          " conteo exacto de registros por categoría:"
+      )
+
+      columnas_texto = [
+          col for col in df.select_dtypes(include=["object", "category"]).columns
+      ]
+      if columnas_texto:
+        col_seleccionada = st.selectbox(
+            "Selecciona la columna a analizar:", columnas_texto
         )
-        fig_mant.update_layout(
-            paper_bgcolor=BG_CARD, plot_bgcolor=BG_CARD,
-            font=dict(color=TEXT_PRIMARY),
-            margin=dict(l=10, r=10, t=10, b=10),
-            height=220,
-            xaxis=dict(showgrid=False),
-            yaxis=dict(showgrid=True, gridcolor=BORDER_COLOR),
-            showlegend=False
-        )
-        fig_mant.update_traces(textfont_size=12, textposition="outside", cliponaxis=False)
-        st.plotly_chart(fig_mant, use_container_width=True)
+        if col_seleccionada:
+          resumen_df = (
+              df[col_seleccionada].value_counts().reset_index(name="Cantidad")
+          )
+          resumen_df.columns = [col_seleccionada, "Total de Registros"]
+          st.dataframe(resumen_df, width="stretch")
+      else:
+        st.info("No hay columnas de texto disponibles para este análisis.")
 
-    with col_resumen:
-        st.markdown("### 📌 Resumen ejecutivo")
-        
-        st.markdown(f"""
-        <div class="kpi-card" style="margin-bottom: 12px; height: auto; padding: 12px;">
-            <div class="kpi-header">📦 Inventario actual</div>
-            <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">{val_inv:,} UPS</div>
-            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Equipos registrados en el inventario.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div class="kpi-card" style="margin-bottom: 12px; height: auto; padding: 12px;">
-            <div class="kpi-header">🔋 Baterías {anio_actual}</div>
-            <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">{val_bat_actual:,}</div>
-            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Baterías cambiadas durante {anio_actual}.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div class="kpi-card" style="margin-bottom: 12px; height: auto; padding: 12px;">
-            <div class="kpi-header">💰 Alquileres</div>
-            <div class="kpi-value" style="font-size: 1.2rem; color: {SUMMARY_VAL_COLOR};">S/ {val_ingresos_alq:,.2f}</div>
-            <div style="font-size: 0.75rem; color: {TEXT_SECONDARY}; margin-top: 2px;">Monto acumulado real de alquileres.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# -------------------------------------------------------------
-# INVENTARIO UPS
-# -------------------------------------------------------------
-elif opcion == "📦 Inventario UPS":
-    st.markdown("## 📦 Inventario de UPS")
-    
-    df_inv = st.session_state.df_Inventario
-    
-    cols_marca_inv = [c for c in df_inv.columns if str(c).upper().strip() == 'MARCA']
-    marcas_inv = ["Todas"]
-    if cols_marca_inv:
-        marcas_inv.extend(sorted(df_inv[cols_marca_inv[0]].dropna().astype(str).unique()))
-
-    col_inv_f = [c for c in df_inv.columns if "FECHA" in str(c).upper()]
-    anos_inv = ["Todos"]
-    if col_inv_f:
-        anos_encontrados_inv = pd.to_datetime(df_inv[col_inv_f[0]], errors='coerce').dt.year.dropna().unique()
-        anos_inv.extend(sorted([int(a) for a in anos_encontrados_inv], reverse=True))
-    else:
-        anos_inv.extend([2025, 2026])
-
-    col_f_ano, col_f_marca, col_busqueda, col_registros = st.columns([1.2, 1.5, 2.3, 1])
-    with col_f_ano:
-        anio_sel_inv = st.selectbox("📅 Filtrar Año:", options=anos_inv, key="filtro_anio_inv")
-    with col_f_marca:
-        marca_sel_inv = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_inv, key="filtro_marca_inv")
-    with col_busqueda:
-        busqueda = st.text_input("🔍 Buscar UPS", placeholder="Modelo, tienda, serie...")
-    
-    df_mostrar = df_inv.copy()
-    if anio_sel_inv != "Todos" and col_inv_f:
-        anos_fila_inv = pd.to_datetime(df_mostrar[col_inv_f[0]], errors='coerce').dt.year
-        df_mostrar = df_mostrar[anos_fila_inv == anio_sel_inv]
-
-    if marca_sel_inv != "Todas" and cols_marca_inv:
-        df_mostrar = df_mostrar[df_mostrar[cols_marca_inv[0]].astype(str) == marca_sel_inv]
-
-    if busqueda.strip():
-        mask = df_mostrar.astype(str).apply(lambda row: row.str.contains(busqueda, case=False, na=False)).any(axis=1)
-        df_mostrar = df_mostrar[mask]
-
-    with col_registros:
-        render_kpi("", "Registros", f"{len(df_mostrar):,}")
-
-    if st.session_state.rol_actual == "admin":
-        df_edit = st.data_editor(df_mostrar, num_rows="dynamic", use_container_width=True, key="ed_inv")
-        if st.button("💾 Guardar Cambios en Excel"):
-            st.session_state.df_Inventario = df_edit
-            guardar_excel(df_edit, "Inventario")
-            st.success("✅ Archivo Inventario guardado.")
-            st.rerun()
-    else:
-        st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
-
-# -------------------------------------------------------------
-# MANTENIMIENTO DE UPS
-# -------------------------------------------------------------
-elif opcion == "🛠️ Mantenimientos":
-    st.markdown("## 🛠️ Mantenimiento de UPS")
-    
-    df_mant = st.session_state.df_Mantenimiento.copy()
-    col_mant_f = [c for c in df_mant.columns if "FECHA" in str(c).upper()]
-    
-    anos_disponibles = ["Todos"]
-    if col_mant_f:
-        anos_encontrados = pd.to_datetime(df_mant[col_mant_f[0]], errors='coerce').dt.year.dropna().unique()
-        anos_disponibles.extend(sorted([int(a) for a in anos_encontrados], reverse=True))
-
-    cols_marca_mant = [c for c in df_mant.columns if str(c).upper().strip() == 'MARCA']
-    marcas_mant = ["Todas"]
-    if cols_marca_mant:
-        marcas_mant.extend(sorted(df_mant[cols_marca_mant[0]].dropna().astype(str).unique()))
-
-    col_filtro_ano, col_filtro_marca, col_busqueda_t = st.columns([1.2, 1.5, 2.5])
-    with col_filtro_ano:
-        anio_seleccionado = st.selectbox("📅 Filtrar por Año:", options=anos_disponibles, key="filtro_anio_mant")
-    with col_filtro_marca:
-        marca_sel_mant = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_mant, key="filtro_marca_mant")
-    with col_busqueda_t:
-        busqueda_tienda = st.text_input("🔎 Buscar texto", placeholder="Tienda, modelo, serie...")
-
-    df_mant_filtrado = df_mant.copy()
-
-    if anio_seleccionado != "Todos" and col_mant_f:
-        anos_fila = pd.to_datetime(df_mant_filtrado[col_mant_f[0]], errors='coerce').dt.year
-        df_mant_filtrado = df_mant_filtrado[anos_fila == anio_seleccionado]
-
-    if marca_sel_mant != "Todas" and cols_marca_mant:
-        df_mant_filtrado = df_mant_filtrado[df_mant_filtrado[cols_marca_mant[0]].astype(str) == marca_sel_mant]
-
-    if busqueda_tienda.strip():
-        mask = df_mant_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_tienda, case=False, na=False)).any(axis=1)
-        df_mant_filtrado = df_mant_filtrado[mask]
-
-    cols_porcentaje = [c for c in df_mant_filtrado.columns if 'CARG' in str(c).upper() or 'PORC' in str(c).upper()]
-    df_mant_display = df_mant_filtrado.copy()
-    for col_p in cols_porcentaje:
-        df_mant_display[col_p] = pd.to_numeric(df_mant_display[col_p], errors='coerce').apply(
-            lambda x: f"{x * 100:.1f}%" if pd.notnull(x) else ""
-        )
-
-    cant_mantenimientos = len(df_mant_filtrado)
-    
-    c_kpi, _ = st.columns([1, 2])
-    with c_kpi:
-        render_kpi("🛠️", f"Mantenimientos ({anio_seleccionado})", f"{cant_mantenimientos:,}")
-        
-    if st.session_state.rol_actual == "admin":
-        df_edit_mant = st.data_editor(df_mant_display, num_rows="dynamic", use_container_width=True, key="ed_mant")
-        if st.button("💾 Guardar Cambios en Mantenimiento"):
-            df_para_guardar = df_edit_mant.copy()
-            for col_p in cols_porcentaje:
-                df_para_guardar[col_p] = df_para_guardar[col_p].astype(str).str.replace('%', '', regex=False)
-                df_para_guardar[col_p] = pd.to_numeric(df_para_guardar[col_p], errors='coerce') / 100.0
-            st.session_state.df_Mantenimiento = df_para_guardar
-            guardar_excel(df_para_guardar, "Mantenimiento")
-            st.success("✅ Archivo de Mantenimiento guardado.")
-            st.rerun()
-    else:
-        st.dataframe(df_mant_display, use_container_width=True, hide_index=True)
-
-# -------------------------------------------------------------
-# CAMBIO BATERÍAS
-# -------------------------------------------------------------
-elif opcion == "🔋 Cambio de baterías":
-    st.markdown("## 🔋 Cambios de Baterías")
-    
-    df_bat = st.session_state.df_Baterias.copy()
-    df_bat_filtrado = df_bat.copy()
-
-    anos_bat_opciones = ["Todos"]
-    for col in df_bat.columns:
-        c_str = str(col)
-        for anio_prueba in range(2020, 2035):
-            if str(anio_prueba) in c_str or str(anio_prueba)[-2:] in c_str:
-                if anio_prueba not in [int(x) for x in anos_bat_opciones if x != "Todos"]:
-                    anos_bat_opciones.append(anio_prueba)
-
-    if len(anos_bat_opciones) == 1:
-        anos_bat_opciones.extend([2025, 2026])
-
-    cols_marca_bat = [c for c in df_bat.columns if str(c).upper().strip() == 'MARCA']
-    marcas_bat = ["Todas"]
-    if cols_marca_bat:
-        marcas_bat.extend(sorted(df_bat[cols_marca_bat[0]].dropna().astype(str).unique()))
-
-    col_f_bateria, col_f_marca_bat, col_busqueda_bat = st.columns([1.2, 1.5, 2.5])
-    with col_f_bateria:
-        anio_sel_bat = st.selectbox("📅 Filtrar Año Baterías:", options=anos_bat_opciones, key="filtro_anio_bat")
-    with col_f_marca_bat:
-        marca_sel_bat = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_bat, key="filtro_marca_bat")
-    with col_busqueda_bat:
-        busqueda_bat = st.text_input("🔍 Buscar", placeholder="Tienda, serie, modelo...", key="busqueda_baterias_txt")
-
-    if anio_sel_bat != "Todos":
-        cols_a_mantener = []
-        col_cant_ano = None
-        
-        for col in df_bat.columns:
-            c_upper = str(col).upper()
-            if any(k in c_upper for k in ['TIENDA', 'ITEM', 'MARCA', 'MODELO', 'SERIE', 'RAZON', 'LOCAL', 'ZONA']):
-                cols_a_mantener.append(col)
-            elif str(anio_sel_bat) in str(col) or str(anio_sel_bat)[-2:] in str(col):
-                cols_a_mantener.append(col)
-                if 'CANT' in c_upper or 'CANTDAD' in c_upper:
-                    col_cant_ano = col
-
-        if cols_a_mantener:
-            df_bat_filtrado = df_bat[cols_a_mantener].copy()
-            if col_cant_ano:
-                df_bat_filtrado[col_cant_ano] = pd.to_numeric(df_bat_filtrado[col_cant_ano], errors='coerce').fillna(0)
-                df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[col_cant_ano] > 0]
-
-    if marca_sel_bat != "Todas" and cols_marca_bat:
-        df_bat_filtrado = df_bat_filtrado[df_bat_filtrado[cols_marca_bat[0]].astype(str) == marca_sel_bat]
-
-    if busqueda_bat.strip():
-        mask = df_bat_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_bat, case=False, na=False)).any(axis=1)
-        df_bat_filtrado = df_bat_filtrado[mask]
-        
-    col_bat_ant = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '25' in str(c)]
-    col_bat_act = [c for c in df_bat.columns if ('CANT' in str(c).upper() or 'CANTDAD' in str(c).upper()) and '26' in str(c)]
-
-    tot_anterior = int(pd.to_numeric(df_bat[col_bat_ant[0]], errors='coerce').sum()) if col_bat_ant else 0
-    tot_actual = int(pd.to_numeric(df_bat[col_bat_act[0]], errors='coerce').sum()) if col_bat_act else 0
-    tot_general = tot_anterior + tot_actual
-    
-    c1, c2, c3 = st.columns(3)
-    with c1: render_kpi("🔋", f"Baterías {anio_actual - 1}", f"{tot_anterior:,}")
-    with c2: render_kpi("🔋", f"Baterías {anio_actual}", f"{tot_actual:,}")
-    with c3: render_kpi("🔋", "Total Acumulado", f"{tot_general:,}")
-    
-    if st.session_state.rol_actual == "admin":
-        df_edit_bat = st.data_editor(df_bat_filtrado, num_rows="dynamic", use_container_width=True, key="ed_bat")
-        if st.button("💾 Guardar Cambios en Baterías"):
-            st.session_state.df_Baterias = df_edit_bat
-            guardar_excel(df_edit_bat, "Baterias")
-            st.success("✅ Archivo de Baterías guardado.")
-            st.rerun()
-    else:
-        st.dataframe(df_bat_filtrado, use_container_width=True, hide_index=True)
-
-# -------------------------------------------------------------
-# ALQUILER DE UPS
-# -------------------------------------------------------------
-elif opcion == "🤝 Alquileres":
-    st.markdown("## ⏱️ Alquiler de UPS")
-    
-    df_alq = st.session_state.df_Alquiler.copy()
-    
-    col_anio_exacta = [c for c in df_alq.columns if str(c).upper().strip() == 'AÑO']
-    col_alq_f = [c for c in df_alq.columns if "FECHA" in str(c).upper()]
-    
-    anos_alq = ["Todos"]
-    if col_anio_exacta:
-        anos_encontrados_alq = df_alq[col_anio_exacta[0]].dropna().unique()
-        anos_alq.extend(sorted([int(a) for a in anos_encontrados_alq if str(a).isdigit()], reverse=True))
-    elif col_alq_f:
-        anos_encontrados_alq = pd.to_datetime(df_alq[col_alq_f[0]], errors='coerce').dt.year.dropna().unique()
-        anos_alq.extend(sorted([int(a) for a in anos_encontrados_alq], reverse=True))
-    
-    if len(anos_alq) == 1:
-        anos_alq.extend([2025, 2026])
-
-    cols_marca_alq = [c for c in df_alq.columns if str(c).upper().strip() == 'MARCA']
-    marcas_alq = ["Todas"]
-    if cols_marca_alq:
-        marcas_alq.extend(sorted(df_alq[cols_marca_alq[0]].dropna().astype(str).unique()))
-
-    col_f_ano_alq, col_f_marca_alq, col_busqueda_alq = st.columns([1.2, 1.5, 2.5])
-    with col_f_ano_alq:
-        anio_sel_alq = st.selectbox("📅 Filtrar Año:", options=anos_alq, key="filtro_anio_alq")
-    with col_f_marca_alq:
-        marca_sel_alq = st.selectbox("🏷️ Filtrar por Marca:", options=marcas_alq, key="filtro_marca_alq")
-    with col_busqueda_alq:
-        busqueda_alq = st.text_input("🔎 Buscar alquiler", placeholder="Cotización, tienda, evento...")
-
-    df_alq_filtrado = df_alq.copy()
-
-    if anio_sel_alq != "Todos":
-        if col_anio_exacta:
-            df_alq_filtrado = df_alq_filtrado[df_alq_filtrado[col_anio_exacta[0]].astype(str) == str(anio_sel_alq)]
-        elif col_alq_f:
-            anos_fila_alq = pd.to_datetime(df_alq_filtrado[col_alq_f[0]], errors='coerce').dt.year
-            df_alq_filtrado = df_alq_filtrado[anos_fila_alq == anio_sel_alq]
-
-    if marca_sel_alq != "Todas" and cols_marca_alq:
-        df_alq_filtrado = df_alq_filtrado[df_alq_filtrado[cols_marca_alq[0]].astype(str) == marca_sel_alq]
-
-    if busqueda_alq.strip():
-        mask = df_alq_filtrado.astype(str).apply(lambda row: row.str.contains(busqueda_alq, case=False, na=False)).any(axis=1)
-        df_alq_filtrado = df_alq_filtrado[mask]
-
-    col_cot = [c for c in df_alq.columns if 'COTIZACION' in str(c).upper()]
-    if col_cot:
-        df_alq_real = df_alq.dropna(subset=[col_cot[0]])
-        df_alq_real = df_alq_real[~df_alq_real[col_cot[0]].astype(str).str.contains('SUB-TOTAL|TOTAL', case=False, na=False)]
-    else:
-        df_alq_real = df_alq.dropna(how='all')
-
-    tot_alquileres = len(df_alq_real)
-    col_dias = [c for c in df_alq_real.columns if 'DIAS' in str(c).upper()]
-    tot_dias = int(pd.to_numeric(df_alq_real[col_dias[0]], errors='coerce').sum()) if col_dias else 0
-    
-    col_costo = [c for c in df_alq_real.columns if 'COSTO TOTAL' in str(c).upper() or 'TOTAL' in str(c).upper()]
-    tot_costo = float(pd.to_numeric(df_alq_real[col_costo[0]], errors='coerce').sum()) if col_costo else 0.0
-
-    a1, a2, a3 = st.columns(3)
-    with a1: render_kpi("⏱️", "ALQUILERES", f"{tot_alquileres}")
-    with a2: render_kpi("📅", "DÍAS ALQUILADOS", f"{tot_dias}")
-    with a3: render_kpi("💰", "TOTAL", f"S/ {tot_costo:,.2f}")
-    
-    if st.session_state.rol_actual == "admin":
-        df_edit_alq = st.data_editor(df_alq_filtrado, num_rows="dynamic", use_container_width=True, key="ed_alq")
-        if st.button("💾 Guardar Cambios en Alquileres"):
-            st.session_state.df_Alquiler = df_edit_alq
-            guardar_excel(df_edit_alq, "Alquiler")
-            st.success("✅ Archivo de Alquileres guardado.")
-            st.rerun()
-    else:
-        st.dataframe(df_alq_filtrado, use_container_width=True, hide_index=True)
-
-# -------------------------------------------------------------
-# NUEVO REGISTRO
-# -------------------------------------------------------------
-elif opcion == "📝 Nuevo Registro" and st.session_state.rol_actual == "admin":
-    st.markdown("## 📝 Registrar Nuevo Evento TI")
-    st.caption("Agrega un nuevo registro directamente a cualquiera de los módulos principales.")
-
-    tipo_reg = st.selectbox("Seleccione el módulo donde desea agregar el registro:", ["Inventario UPS", "Mantenimientos", "Cambio de baterías", "Alquileres"])
-
-    if tipo_reg == "Inventario UPS":
-        df_actual = st.session_state.df_Inventario
-        clave_reg = "Inventario"
-    elif tipo_reg == "Mantenimientos":
-        df_actual = st.session_state.df_Mantenimiento
-        clave_reg = "Mantenimiento"
-    elif tipo_reg == "Cambio de baterías":
-        df_actual = st.session_state.df_Baterias
-        clave_reg = "Baterias"
-    else:
-        df_actual = st.session_state.df_Alquiler
-        clave_reg = "Alquiler"
-
-    st.markdown("### Ingrese los datos del nuevo registro:")
-    with st.form("form_nuevo_registro"):
-        nuevos_datos = {}
-        cols = list(df_actual.columns)
-        
-        for i in range(0, len(cols), 2):
-            c1, c2 = st.columns(2)
-            with c1:
-                col_name = cols[i]
-                nuevos_datos[col_name] = st.text_input(f"{col_name}")
-            with c2:
-                if i + 1 < len(cols):
-                    col_name_2 = cols[i + 1]
-                    nuevos_datos[col_name_2] = st.text_input(f"{col_name_2}")
-
-        submitted = st.form_submit_button("➕ Agregar y Guardar en Excel", use_container_width=True)
-        if submitted:
-            nueva_fila = pd.DataFrame([nuevos_datos])
-            df_actualizado = pd.concat([df_actual, nueva_fila], ignore_index=True)
-            st.session_state[f"df_{clave_reg}"] = df_actualizado
-            guardar_excel(df_actualizado, clave_reg)
-            st.success(f"✅ ¡Nuevo registro agregado con éxito en {tipo_reg}!")
-
-# -------------------------------------------------------------
-# EXPORTAR DATOS
-# -------------------------------------------------------------
-elif opcion == "📥 Exportar datos" and st.session_state.rol_actual in ["admin", "visor_exportador"]:
-    st.markdown("## 📥 Exportar Módulos del Sistema")
-    st.caption("Descarga la información consolidada en formato Excel.")
-
-    mod_exp = st.selectbox("Seleccione el módulo a exportar:", ["Inventario UPS", "Mantenimiento", "Cambio de baterías", "Alquiler"])
-    
-    if mod_exp == "Inventario UPS":
-        df_exp = st.session_state.df_Inventario
-        nombre_file = "Inventario_UPS.xlsx"
-    elif mod_exp == "Mantenimiento":
-        df_exp = st.session_state.df_Mantenimiento
-        nombre_file = "Mantenimiento_UPS.xlsx"
-    elif mod_exp == "Cambio de baterías":
-        df_exp = st.session_state.df_Baterias
-        nombre_file = "Cambios_Baterias.xlsx"
-    else:
-        df_exp = st.session_state.df_Alquiler
-        nombre_file = "alquiler_de_UPS.xlsx"
-
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df_exp.to_excel(writer, index=False)
-    buffer.seek(0)
-
-    st.download_button(
-        label=f"📥 Descargar {mod_exp} en Excel",
-        data=buffer,
-        file_name=nombre_file,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
+  else:
+    st.error(
+        f"No se encontró el archivo `{nombre_archivo}` en la carpeta del"
+        " proyecto. Asegúrate de que esté en el directorio correcto."
     )
